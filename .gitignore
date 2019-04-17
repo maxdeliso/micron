@@ -1,0 +1,10 @@
+.idea/
+*.iml
+target/
+.classpath
+.factorypath
+.project
+.settings/
+.vscode/
+logs/
+.attach_pid*
