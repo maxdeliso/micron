@@ -33,7 +33,7 @@ public final class SingleThreadedEventLooper implements EventLooper {
 
     private final MessageStore messageStore;
 
-    private final CountDownLatch countdownLatch;
+    private final CountDownLatch latch;
 
     private ServerSocketChannel serverSocketChannel;
 
@@ -48,7 +48,7 @@ public final class SingleThreadedEventLooper implements EventLooper {
         this.noNewDataMessage = noNewDataMessage;
         this.peerRegistry = new PeerRegistry();
         this.messageStore = new MessageStore(messageListCap, peerRegistry);
-        this.countdownLatch = new CountDownLatch(1);
+        this.latch = new CountDownLatch(1);
     }
 
     @Override
@@ -74,7 +74,7 @@ public final class SingleThreadedEventLooper implements EventLooper {
                     }
 
                     if (selectedKey.isAcceptable()) {
-                        handleAcceptableKey(serverSocketChannel, selector);
+                        handleAccept(serverSocketChannel, selector);
                     }
 
                     if (selectedKey.isValid() && selectedKey.isWritable()) {
@@ -87,7 +87,7 @@ public final class SingleThreadedEventLooper implements EventLooper {
                 }
             }
         } finally {
-            countdownLatch.countDown();
+            latch.countDown();
 
             LOGGER.trace("exiting event loop");
         }
@@ -99,14 +99,14 @@ public final class SingleThreadedEventLooper implements EventLooper {
             serverSocketChannel.close();
         }
 
-        countdownLatch.await();
+        latch.await();
     }
 
     private Optional<Peer> lookupPeerDescriptor(final SelectionKey selectionKey) {
         return Optional.ofNullable(selectionKey).map(key -> (Long) key.attachment()).flatMap(peerRegistry::get);
     }
 
-    private void handleAcceptableKey(final ServerSocketChannel serverSocketChannel, final Selector selector)
+    private void handleAccept(final ServerSocketChannel serverSocketChannel, final Selector selector)
             throws IOException {
         Optional.ofNullable(serverSocketChannel.accept())
                 .ifPresent(socketChannel -> handleAccept(socketChannel, selector));
@@ -126,10 +126,10 @@ public final class SingleThreadedEventLooper implements EventLooper {
     }
 
     private void handleReadableKey(final SelectionKey readSelectedKey) {
-        lookupPeerDescriptor(readSelectedKey).flatMap(this::handleRedablePeerRead).ifPresent(messageStore::add);
+        lookupPeerDescriptor(readSelectedKey).flatMap(this::handleReadablePeer).ifPresent(messageStore::add);
     }
 
-    private Optional<String> handleRedablePeerRead(final Peer peer) {
+    private Optional<String> handleReadablePeer(final Peer peer) {
         final int bytesRead;
 
         try {

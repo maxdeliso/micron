@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+import static java.lang.Runtime.getRuntime;
+
 final class Main {
 
     private static final int SERVER_PORT = 1234;
@@ -30,7 +32,7 @@ final class Main {
                         MAX_MESSAGES,
                         NO_NEW_DATA_MESSAGE);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 LOGGER.trace("sending halt to looper...");
 

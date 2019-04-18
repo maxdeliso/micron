@@ -1,25 +1,27 @@
 package name.maxdeliso.peer;
 
+import net.jcip.annotations.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
-import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+@ThreadSafe
 public final class PeerRegistry {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PeerRegistry.class);
 
     private final AtomicLong peerCounter;
 
-    private final HashMap<Long, Peer> peerMap;
+    private final ConcurrentHashMap<Long, Peer> peerMap;
 
     public PeerRegistry() {
         this.peerCounter = new AtomicLong();
-        this.peerMap = new HashMap<>();
+        this.peerMap = new ConcurrentHashMap<>();
     }
 
     public Optional<Peer> get(final Long index) {

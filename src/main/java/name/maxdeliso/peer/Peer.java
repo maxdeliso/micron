@@ -1,19 +1,23 @@
 package name.maxdeliso.peer;
 
+import net.jcip.annotations.ThreadSafe;
+
 import java.nio.channels.SocketChannel;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
+@ThreadSafe
 public final class Peer {
 
     private final long index;
 
-    private long position;
+    private final AtomicLong position;
 
     private final SocketChannel socketChannel;
 
     public Peer(final long index, final SocketChannel socketChannel) {
         this.index = index;
-        this.position = 0;
+        this.position = new AtomicLong(0);
         this.socketChannel = socketChannel;
     }
 
@@ -41,11 +45,11 @@ public final class Peer {
     }
 
     public long getPosition() {
-        return position;
+        return position.get();
     }
 
     public void advancePosition() {
-        this.position++;
+        this.position.incrementAndGet();
     }
 
     public long getIndex() {
@@ -53,7 +57,7 @@ public final class Peer {
     }
 
     public void resetPosition() {
-        this.position = 0;
+        this.position.set(0);
     }
 
     @Override
