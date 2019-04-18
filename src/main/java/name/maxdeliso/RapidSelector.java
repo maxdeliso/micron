@@ -9,29 +9,33 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-final class RapidSelector implements EventLooper {
+final class RapidSelector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RapidSelector.class);
 
     private final ByteBuffer incomingBuffer;
 
-    private final AtomicInteger peerCounter = new AtomicInteger();
-
     private final int messageListCap;
-
-    private final List<String> messages;
-
-    private final Map<Integer, PeerDescriptor> peerDescriptorMap = new HashMap<>();
 
     private final int serverPort;
 
     private final String noNewDataMessage;
 
     private final long selectTimeoutSeconds;
+
+    private final List<String> messages;
+
+    private final AtomicInteger peerCounter = new AtomicInteger();
+
+    private final Map<Integer, Peer> peerMap = new HashMap<>();
 
     public RapidSelector(int serverPort,
                          int bufferSize,
@@ -46,7 +50,6 @@ final class RapidSelector implements EventLooper {
         this.messages = new ArrayList<>(messageListCap);
     }
 
-    @Override
     public void eventLoop() throws IOException {
         try (final var serverSocketChannel = ServerSocketChannel.open();
              final var socketChannel = serverSocketChannel.bind(new InetSocketAddress(serverPort));
@@ -80,10 +83,10 @@ final class RapidSelector implements EventLooper {
         }
     }
 
-    private Optional<PeerDescriptor> lookupPeerDescriptor(final SelectionKey selectionKey) {
+    private Optional<Peer> lookupPeerDescriptor(final SelectionKey selectionKey) {
         return Optional.ofNullable(selectionKey)
                 .map(key -> (Integer) key.attachment())
-                .map(peerDescriptorMap::get);
+                .map(peerMap::get);
     }
 
     private void handleAcceptableKey(final ServerSocketChannel serverSocketChannel, final Selector selector)
@@ -93,15 +96,16 @@ final class RapidSelector implements EventLooper {
                     try {
                         clientChannel.configureBlocking(false);
 
-                        final var peerKey = clientChannel
-                                .register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                        final var peerKey = clientChannel.register(selector,
+                                SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                        final var newPeerNumber = peerCounter.get();
+                        final var newPeerDescriptor = new Peer(newPeerNumber, clientChannel);
 
-                        peerDescriptorMap
-                                .put(peerCounter.get(), new PeerDescriptor(peerCounter.get(), clientChannel));
+                        peerMap.put(newPeerNumber, newPeerDescriptor);
+                        peerKey.attach(newPeerNumber);
+                        peerCounter.incrementAndGet();
 
-                        peerKey.attach(peerCounter.getAndIncrement());
-
-                        LOGGER.info("new connection, peer counter is now {}", peerCounter);
+                        LOGGER.info("new connection, peer counter is now {}", peerCounter.get());
                     } catch (final IOException ioe) {
                         throw new IllegalStateException("failed to initialize peer socket", ioe);
                     }
@@ -120,10 +124,10 @@ final class RapidSelector implements EventLooper {
 
     private void handleOverflow() {
         if (messages.size() >= messageListCap) {
-            final var minimumRightExtent = peerDescriptorMap
+            final var minimumRightExtent = peerMap
                     .values()
                     .parallelStream()
-                    .map(PeerDescriptor::getPeerOffset)
+                    .map(Peer::getPeerOffset)
                     .min(Integer::compare)
                     .orElse(messageListCap);
 
@@ -135,24 +139,24 @@ final class RapidSelector implements EventLooper {
             messages.clear();
             messages.addAll(leftOver);
 
-            peerDescriptorMap.values().parallelStream().forEach(PeerDescriptor::resetPeerOffset);
+            peerMap.values().parallelStream().forEach(Peer::resetPeerOffset);
         }
     }
 
-    private Optional<String> receiveMessage(final PeerDescriptor peerDescriptor) {
+    private Optional<String> receiveMessage(final Peer peer) {
         final int bytesRead;
 
         try {
-            bytesRead = peerDescriptor.getSocketChannel().read(incomingBuffer);
+            bytesRead = peer.getSocketChannel().read(incomingBuffer);
 
             if (bytesRead == 0) {
                 return Optional.empty();
             } else if (bytesRead == -1) {
-                evictPeer(peerDescriptor);
+                evictPeer(peer);
                 return Optional.empty();
             }
         } catch (final IOException ioe) {
-            evictPeer(peerDescriptor);
+            evictPeer(peer);
             return Optional.empty();
         }
 
@@ -166,38 +170,34 @@ final class RapidSelector implements EventLooper {
 
     private void handleWritableKey(final SelectionKey writeSelectedKey) {
         lookupPeerDescriptor(writeSelectedKey)
-                .ifPresent(peerDescriptor -> {
+                .ifPresent(peer -> {
                     try {
-                        if (peerDescriptor.getPeerOffset() < messages.size()) {
+                        if (peer.getPeerOffset() < messages.size()) {
                             final var nextMessageBytes = messages
-                                    .get(peerDescriptor.getPeerOffset())
+                                    .get(peer.getPeerOffset())
                                     .getBytes();
 
-                            peerDescriptor
-                                    .getSocketChannel()
-                                    .write(ByteBuffer.wrap(nextMessageBytes));
+                            peer.getSocketChannel().write(ByteBuffer.wrap(nextMessageBytes));
 
-                            peerDescriptor.advancePeerOffset();
+                            peer.advancePeerOffset();
                         } else {
-                            peerDescriptor
-                                    .getSocketChannel()
-                                    .write(ByteBuffer.wrap(noNewDataMessage.getBytes()));
+                            peer.getSocketChannel().write(ByteBuffer.wrap(noNewDataMessage.getBytes()));
                         }
                     } catch (final IOException ioe) {
-                        LOGGER.warn("failed to write to peer with index {}", peerDescriptor.getPeerIndex());
+                        LOGGER.warn("failed to write to peer with index {}", peer.getPeerIndex());
 
-                        evictPeer(peerDescriptor);
+                        evictPeer(peer);
                     }
                 });
     }
 
-    private void evictPeer(final PeerDescriptor peerDescriptor) {
+    private void evictPeer(final Peer peer) {
         try {
-            peerDescriptor.getSocketChannel().close();
+            peer.getSocketChannel().close();
         } catch (final IOException ioe) {
             LOGGER.warn("failed to close channel on peer eviction", ioe);
         } finally {
-            peerDescriptorMap.remove(peerDescriptor.getPeerIndex());
+            peerMap.remove(peer.getPeerIndex());
         }
     }
 }
