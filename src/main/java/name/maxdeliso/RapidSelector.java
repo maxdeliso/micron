@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 final class RapidSelector {
 
@@ -33,9 +33,9 @@ final class RapidSelector {
 
     private final List<String> messages;
 
-    private final AtomicInteger peerCounter = new AtomicInteger();
+    private final AtomicLong peerCounter = new AtomicLong();
 
-    private final Map<Integer, Peer> peerMap = new HashMap<>();
+    private final Map<Long, Peer> peerMap = new HashMap<>();
 
     public RapidSelector(int serverPort,
                          int bufferSize,
@@ -85,7 +85,7 @@ final class RapidSelector {
 
     private Optional<Peer> lookupPeerDescriptor(final SelectionKey selectionKey) {
         return Optional.ofNullable(selectionKey)
-                .map(key -> (Integer) key.attachment())
+                .map(key -> (Long) key.attachment())
                 .map(peerMap::get);
     }
 
@@ -127,7 +127,8 @@ final class RapidSelector {
             final var minimumRightExtent = peerMap
                     .values()
                     .parallelStream()
-                    .map(Peer::getPeerOffset)
+                    .map(Peer::getPosition)
+                    .map(Math::toIntExact)
                     .min(Integer::compare)
                     .orElse(messageListCap);
 
@@ -138,8 +139,7 @@ final class RapidSelector {
 
             messages.clear();
             messages.addAll(leftOver);
-
-            peerMap.values().parallelStream().forEach(Peer::resetPeerOffset);
+            peerMap.values().parallelStream().forEach(Peer::resetPosition);
         }
     }
 
@@ -172,19 +172,20 @@ final class RapidSelector {
         lookupPeerDescriptor(writeSelectedKey)
                 .ifPresent(peer -> {
                     try {
-                        if (peer.getPeerOffset() < messages.size()) {
+                        final Long peerPos = peer.getPosition();
+
+                        if (peerPos < messages.size()) {
                             final var nextMessageBytes = messages
-                                    .get(peer.getPeerOffset())
+                                    .get(peerPos.intValue()) // java.util.List uses primitive int
                                     .getBytes();
 
                             peer.getSocketChannel().write(ByteBuffer.wrap(nextMessageBytes));
-
-                            peer.advancePeerOffset();
+                            peer.advancePosition();
                         } else {
                             peer.getSocketChannel().write(ByteBuffer.wrap(noNewDataMessage.getBytes()));
                         }
                     } catch (final IOException ioe) {
-                        LOGGER.warn("failed to write to peer with index {}", peer.getPeerIndex());
+                        LOGGER.warn("failed to write to peer with index {}", peer.getIndex());
 
                         evictPeer(peer);
                     }
@@ -197,7 +198,7 @@ final class RapidSelector {
         } catch (final IOException ioe) {
             LOGGER.warn("failed to close channel on peer eviction", ioe);
         } finally {
-            peerMap.remove(peer.getPeerIndex());
+            peerMap.remove(peer.getIndex());
         }
     }
 }

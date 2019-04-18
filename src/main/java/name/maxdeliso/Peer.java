@@ -5,15 +5,15 @@ import java.util.Objects;
 
 public final class Peer {
 
-    private final int peerIndex;
-    private int peerOffset;
+    private final long index;
+
+    private long position;
 
     private final SocketChannel socketChannel;
 
-    public Peer(final int peerIndex, final SocketChannel socketChannel) {
-        this.peerIndex = peerIndex;
-        this.peerOffset = 0;
-
+    public Peer(final long index, final SocketChannel socketChannel) {
+        this.index = index;
+        this.position = 0;
         this.socketChannel = socketChannel;
     }
 
@@ -27,40 +27,37 @@ public final class Peer {
             return false;
         }
 
-        Peer that = (Peer) obj;
-        return peerIndex == that.peerIndex;
+        final Peer that = (Peer) obj;
+        return this.index == that.index;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(peerIndex);
+        return Objects.hash(index);
     }
 
     public SocketChannel getSocketChannel() {
         return socketChannel;
     }
 
-    public int getPeerOffset() {
-        return peerOffset;
+    public long getPosition() {
+        return position;
     }
 
-    public void advancePeerOffset() {
-        this.peerOffset++;
+    public void advancePosition() {
+        this.position++;
     }
 
-    public void resetPeerOffset() {
-        this.peerOffset = 0;
+    public void resetPosition() {
+        this.position = 0;
     }
 
-    public int getPeerIndex() {
-        return peerIndex;
+    public long getIndex() {
+        return index;
     }
 
     @Override
     public String toString() {
-        return "Peer{" +
-                "peerIndex=" + peerIndex +
-                ", peerOffset=" + peerOffset +
-                '}';
+        return "Peer{index=" + index + ", position=" + position + '}';
     }
 }
