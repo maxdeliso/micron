@@ -1,4 +1,4 @@
-package name.maxdeliso;
+package name.maxdeliso.peer;
 
 import java.nio.channels.SocketChannel;
 import java.util.Objects;
@@ -48,12 +48,12 @@ public final class Peer {
         this.position++;
     }
 
-    public void resetPosition() {
-        this.position = 0;
-    }
-
     public long getIndex() {
         return index;
+    }
+
+    public void resetPosition() {
+        this.position = 0;
     }
 
     @Override

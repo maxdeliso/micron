@@ -1,4 +1,4 @@
-package name.maxdeliso;
+package name.maxdeliso.peer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
-final class PeerRegistry {
+public final class PeerRegistry {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PeerRegistry.class);
 
@@ -22,11 +22,11 @@ final class PeerRegistry {
         this.peerMap = new HashMap<>();
     }
 
-    public Optional<Peer> getByIndex(Long aLong) {
-        return Optional.ofNullable(peerMap.get(aLong));
+    public Optional<Peer> get(final Long index) {
+        return Optional.ofNullable(peerMap.get(index));
     }
 
-    public Peer allocatePeer(SocketChannel clientChannel) {
+    public Peer allocatePeer(final SocketChannel clientChannel) {
         final var newPeerNumber = peerCounter.get();
         final var newPeer = new Peer(newPeerNumber, clientChannel);
 
@@ -35,7 +35,7 @@ final class PeerRegistry {
         return newPeer;
     }
 
-    public Optional<Integer> findMinExtent() {
+    public Optional<Integer> minPosition() {
         return peerMap
                 .values()
                 .parallelStream()

@@ -1,5 +1,6 @@
-package name.maxdeliso;
+package name.maxdeliso.message;
 
+import name.maxdeliso.peer.PeerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-final class MessageStore {
+public final class MessageStore {
 
     private final int messageListCap;
 
@@ -34,12 +35,11 @@ final class MessageStore {
     }
 
     private void rotateBuffer() {
-        final var minimumRightExtent = peerRegistry.findMinExtent().orElse(messageListCap);
+        final var minimumRightExtent = peerRegistry.minPosition().orElse(messageListCap);
         final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, messageListCap));
 
         messages.clear();
         messages.addAll(leftOver);
-
         peerRegistry.resetPositions();
 
         LOGGER.debug("maximum of {} was hit, copying {} left over messages to the beginning",
@@ -47,6 +47,8 @@ final class MessageStore {
     }
 
     public Optional<String> get(final long messageIndex) {
+        assert messageIndex >= 0;
+
         final Long messageIndexBoxed = messageIndex;
 
         if(messageIndex < messages.size()) {

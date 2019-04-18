@@ -1,5 +1,8 @@
-package name.maxdeliso;
+package name.maxdeliso.looper;
 
+import name.maxdeliso.message.MessageStore;
+import name.maxdeliso.peer.Peer;
+import name.maxdeliso.peer.PeerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,11 +14,12 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-final class RapidSelector {
+public final class SingleThreadedEventLooper implements EventLooper {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RapidSelector.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooper.class);
 
     private final int serverPort;
 
@@ -29,24 +33,33 @@ final class RapidSelector {
 
     private final MessageStore messageStore;
 
-    public RapidSelector(int serverPort,
-                         int bufferSize,
-                         int selectTimeoutSeconds,
-                         int messageListCap,
-                         String noNewDataMessage) {
+    private final CountDownLatch countdownLatch;
+
+    private ServerSocketChannel serverSocketChannel;
+
+    public SingleThreadedEventLooper(int serverPort,
+                                     int bufferSize,
+                                     int selectTimeoutSeconds,
+                                     int messageListCap,
+                                     String noNewDataMessage) {
         this.serverPort = serverPort;
         this.incomingBuffer = ByteBuffer.allocateDirect(bufferSize);
         this.selectTimeoutSeconds = selectTimeoutSeconds;
         this.noNewDataMessage = noNewDataMessage;
         this.peerRegistry = new PeerRegistry();
         this.messageStore = new MessageStore(messageListCap, peerRegistry);
+        this.countdownLatch = new CountDownLatch(1);
     }
 
-    public void eventLoop() throws IOException {
+    @Override
+    public void loop() throws IOException {
+        LOGGER.trace("entering event loop");
+
         try (final var serverSocketChannel = ServerSocketChannel.open();
              final var socketChannel = serverSocketChannel.bind(new InetSocketAddress(serverPort));
              final var selector = Selector.open()) {
 
+            this.serverSocketChannel = serverSocketChannel;
             serverSocketChannel.configureBlocking(false);
             socketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
@@ -73,19 +86,30 @@ final class RapidSelector {
                     }
                 }
             }
+        } finally {
+            countdownLatch.countDown();
+
+            LOGGER.trace("exiting event loop");
         }
     }
 
+    @Override
+    public void halt() throws InterruptedException, IOException {
+        if(serverSocketChannel != null && serverSocketChannel.isOpen()) {
+            serverSocketChannel.close();
+        }
+
+        countdownLatch.await();
+    }
+
     private Optional<Peer> lookupPeerDescriptor(final SelectionKey selectionKey) {
-        return Optional.ofNullable(selectionKey).map(key -> (Long) key.attachment()).flatMap(peerRegistry::getByIndex);
+        return Optional.ofNullable(selectionKey).map(key -> (Long) key.attachment()).flatMap(peerRegistry::get);
     }
 
     private void handleAcceptableKey(final ServerSocketChannel serverSocketChannel, final Selector selector)
             throws IOException {
         Optional.ofNullable(serverSocketChannel.accept())
-                .ifPresent(socketChannel -> {
-                    handleAccept(socketChannel, selector);
-                });
+                .ifPresent(socketChannel -> handleAccept(socketChannel, selector));
     }
 
     private void handleAccept(final SocketChannel socketChannel, final Selector selector) {
@@ -101,12 +125,11 @@ final class RapidSelector {
         }
     }
 
-
     private void handleReadableKey(final SelectionKey readSelectedKey) {
-        lookupPeerDescriptor(readSelectedKey).flatMap(this::receiveMessageFromIncoming).ifPresent(messageStore::add);
+        lookupPeerDescriptor(readSelectedKey).flatMap(this::handleRedablePeerRead).ifPresent(messageStore::add);
     }
 
-    private Optional<String> receiveMessageFromIncoming(final Peer peer) {
+    private Optional<String> handleRedablePeerRead(final Peer peer) {
         final int bytesRead;
 
         try {
