@@ -9,21 +9,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.channels.SocketChannel;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 final class RapidSelector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RapidSelector.class);
-
-    private final ByteBuffer incomingBuffer;
-
-    private final int messageListCap;
 
     private final int serverPort;
 
@@ -31,11 +23,11 @@ final class RapidSelector {
 
     private final long selectTimeoutSeconds;
 
-    private final List<String> messages;
+    private final ByteBuffer incomingBuffer;
 
-    private final AtomicLong peerCounter = new AtomicLong();
+    private final PeerRegistry peerRegistry;
 
-    private final Map<Long, Peer> peerMap = new HashMap<>();
+    private final MessageStore messageStore;
 
     public RapidSelector(int serverPort,
                          int bufferSize,
@@ -45,9 +37,9 @@ final class RapidSelector {
         this.serverPort = serverPort;
         this.incomingBuffer = ByteBuffer.allocateDirect(bufferSize);
         this.selectTimeoutSeconds = selectTimeoutSeconds;
-        this.messageListCap = messageListCap;
         this.noNewDataMessage = noNewDataMessage;
-        this.messages = new ArrayList<>(messageListCap);
+        this.peerRegistry = new PeerRegistry();
+        this.messageStore = new MessageStore(messageListCap, peerRegistry);
     }
 
     public void eventLoop() throws IOException {
@@ -63,7 +55,8 @@ final class RapidSelector {
 
                 for (final var selectedKey : selector.selectedKeys()) {
                     if (!selectedKey.isValid()) {
-                        LOGGER.warn("selected invalid key!");
+                        LOGGER.warn("selected invalid key");
+
                         continue;
                     }
 
@@ -84,121 +77,88 @@ final class RapidSelector {
     }
 
     private Optional<Peer> lookupPeerDescriptor(final SelectionKey selectionKey) {
-        return Optional.ofNullable(selectionKey)
-                .map(key -> (Long) key.attachment())
-                .map(peerMap::get);
+        return Optional.ofNullable(selectionKey).map(key -> (Long) key.attachment()).flatMap(peerRegistry::getByIndex);
     }
 
     private void handleAcceptableKey(final ServerSocketChannel serverSocketChannel, final Selector selector)
             throws IOException {
         Optional.ofNullable(serverSocketChannel.accept())
-                .ifPresent(clientChannel -> {
-                    try {
-                        clientChannel.configureBlocking(false);
-
-                        final var peerKey = clientChannel.register(selector,
-                                SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-                        final var newPeerNumber = peerCounter.get();
-                        final var newPeerDescriptor = new Peer(newPeerNumber, clientChannel);
-
-                        peerMap.put(newPeerNumber, newPeerDescriptor);
-                        peerKey.attach(newPeerNumber);
-                        peerCounter.incrementAndGet();
-
-                        LOGGER.info("new connection, peer counter is now {}", peerCounter.get());
-                    } catch (final IOException ioe) {
-                        throw new IllegalStateException("failed to initialize peer socket", ioe);
-                    }
+                .ifPresent(socketChannel -> {
+                    handleAccept(socketChannel, selector);
                 });
+    }
+
+    private void handleAccept(final SocketChannel socketChannel, final Selector selector) {
+        try {
+            socketChannel.configureBlocking(false);
+
+            final var peerKey = socketChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            final var peer = peerRegistry.allocatePeer(socketChannel);
+
+            peerKey.attach(peer.getIndex());
+        } catch (final IOException ioe) {
+            LOGGER.warn("not allocating peer for socket channel that failed to be registered", ioe);
+        }
     }
 
 
     private void handleReadableKey(final SelectionKey readSelectedKey) {
-        lookupPeerDescriptor(readSelectedKey)
-                .flatMap(this::receiveMessage)
-                .ifPresent(receivedMsg -> {
-                    handleOverflow();
-                    messages.add(receivedMsg);
-                });
+        lookupPeerDescriptor(readSelectedKey).flatMap(this::receiveMessageFromIncoming).ifPresent(messageStore::add);
     }
 
-    private void handleOverflow() {
-        if (messages.size() >= messageListCap) {
-            final var minimumRightExtent = peerMap
-                    .values()
-                    .parallelStream()
-                    .map(Peer::getPosition)
-                    .map(Math::toIntExact)
-                    .min(Integer::compare)
-                    .orElse(messageListCap);
-
-            final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, messageListCap));
-
-            LOGGER.debug("maximum of {} was hit, copying {} left over messages to the beginning",
-                    messageListCap, leftOver.size());
-
-            messages.clear();
-            messages.addAll(leftOver);
-            peerMap.values().parallelStream().forEach(Peer::resetPosition);
-        }
-    }
-
-    private Optional<String> receiveMessage(final Peer peer) {
+    private Optional<String> receiveMessageFromIncoming(final Peer peer) {
         final int bytesRead;
 
         try {
             bytesRead = peer.getSocketChannel().read(incomingBuffer);
-
-            if (bytesRead == 0) {
-                return Optional.empty();
-            } else if (bytesRead == -1) {
-                evictPeer(peer);
-                return Optional.empty();
-            }
         } catch (final IOException ioe) {
-            evictPeer(peer);
+            peerRegistry.evictPeer(peer);
+
+            LOGGER.warn("failed to read from peer {}, so evicted", peer, ioe);
+
             return Optional.empty();
         }
 
-        final var incomingBytes = new byte[bytesRead];
-        incomingBuffer.flip();
-        incomingBuffer.get(incomingBytes, 0, bytesRead);
-        incomingBuffer.rewind();
-        final var incoming = new String(incomingBytes);
-        return Optional.of(incoming);
+        final String incoming;
+
+        if (bytesRead == 0) {
+            incoming = null;
+
+            LOGGER.trace("read zero bytes from peer {}", peer);
+        } else if (bytesRead == -1) {
+            incoming = null;
+
+            peerRegistry.evictPeer(peer);
+
+            LOGGER.warn("received end of stream from peer {}", peer);
+        } else {
+            final var incomingBytes = new byte[bytesRead];
+            incomingBuffer.flip();
+            incomingBuffer.get(incomingBytes, 0, bytesRead);
+            incomingBuffer.rewind();
+            incoming = new String(incomingBytes);
+        }
+
+        return Optional.ofNullable(incoming);
     }
 
     private void handleWritableKey(final SelectionKey writeSelectedKey) {
-        lookupPeerDescriptor(writeSelectedKey)
-                .ifPresent(peer -> {
-                    try {
-                        final Long peerPos = peer.getPosition();
-
-                        if (peerPos < messages.size()) {
-                            final var nextMessageBytes = messages
-                                    .get(peerPos.intValue()) // java.util.List uses primitive int
-                                    .getBytes();
-
-                            peer.getSocketChannel().write(ByteBuffer.wrap(nextMessageBytes));
-                            peer.advancePosition();
-                        } else {
-                            peer.getSocketChannel().write(ByteBuffer.wrap(noNewDataMessage.getBytes()));
-                        }
-                    } catch (final IOException ioe) {
-                        LOGGER.warn("failed to write to peer with index {}", peer.getIndex());
-
-                        evictPeer(peer);
-                    }
-                });
+        lookupPeerDescriptor(writeSelectedKey).ifPresent(this::handleWritablePeer);
     }
 
-    private void evictPeer(final Peer peer) {
+    private void handleWritablePeer(final Peer peer) {
         try {
-            peer.getSocketChannel().close();
+            final var bytesToWriteOpt = messageStore.get(peer.getPosition()).map(String::getBytes);
+            final var bufferToWrite = ByteBuffer.wrap(bytesToWriteOpt.orElse(noNewDataMessage.getBytes()));
+            final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
+
+            bytesToWriteOpt.ifPresent(_bytes -> peer.advancePosition());
+
+            LOGGER.info("wrote {} bytes to peer {}", bytesWritten, peer);
         } catch (final IOException ioe) {
-            LOGGER.warn("failed to close channel on peer eviction", ioe);
-        } finally {
-            peerMap.remove(peer.getIndex());
+            peerRegistry.evictPeer(peer);
+
+            LOGGER.warn("failed to write to peer {}", peer, ioe);
         }
     }
 }
