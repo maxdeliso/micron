@@ -1,4 +1,4 @@
-package name.maxdeliso.peer;
+package name.maxdeliso.micron.peer;
 
 import net.jcip.annotations.ThreadSafe;
 

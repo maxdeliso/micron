@@ -1,7 +1,7 @@
-package name.maxdeliso.looper;
+package name.maxdeliso.micron.selector;
 
-import name.maxdeliso.peer.Peer;
-import name.maxdeliso.peer.PeerRegistry;
+import name.maxdeliso.micron.peer.Peer;
+import name.maxdeliso.micron.peer.PeerRegistry;
 
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;

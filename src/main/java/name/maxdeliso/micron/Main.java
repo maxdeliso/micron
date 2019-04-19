@@ -1,7 +1,11 @@
-package name.maxdeliso;
+package name.maxdeliso.micron;
 
-import name.maxdeliso.looper.EventLooper;
-import name.maxdeliso.looper.SingleThreadedEventLooper;
+import name.maxdeliso.micron.looper.SingleThreadedEventLooper;
+import name.maxdeliso.micron.message.InMemoryMessageStore;
+import name.maxdeliso.micron.message.MessageStore;
+import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
+import name.maxdeliso.micron.peer.PeerRegistry;
+import name.maxdeliso.micron.selector.EventLooper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,11 +15,11 @@ import static java.lang.Runtime.getRuntime;
 
 final class Main {
 
-    private static final int SERVER_PORT = 1234;
+    private static final int SERVER_PORT = 1337;
 
     private static final int BUFFER_SIZE = 512;
 
-    private static final int MAX_MESSAGES = 32;
+    private static final int MAX_MESSAGES = 8192;
 
     private static final int SELECT_TIMEOUT_SECONDS = 1;
 
@@ -24,13 +28,19 @@ final class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
     public static void main(final String[] args) {
+        final PeerRegistry peerRegistry = new InMemoryPeerRegistry();
+
+        final MessageStore messageStore = new InMemoryMessageStore(MAX_MESSAGES, peerRegistry);
+
         final EventLooper looper =
                 new SingleThreadedEventLooper(
                         SERVER_PORT,
                         BUFFER_SIZE,
                         SELECT_TIMEOUT_SECONDS,
                         MAX_MESSAGES,
-                        NO_NEW_DATA_MESSAGE);
+                        NO_NEW_DATA_MESSAGE,
+                        peerRegistry,
+                        messageStore);
 
         getRuntime().addShutdownHook(new Thread(() -> {
             try {

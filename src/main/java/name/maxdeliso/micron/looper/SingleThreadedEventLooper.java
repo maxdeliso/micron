@@ -1,8 +1,11 @@
-package name.maxdeliso.looper;
+package name.maxdeliso.micron.looper;
 
-import name.maxdeliso.message.MessageStore;
-import name.maxdeliso.peer.Peer;
-import name.maxdeliso.peer.PeerRegistry;
+import name.maxdeliso.micron.message.MessageStore;
+import name.maxdeliso.micron.peer.Peer;
+import name.maxdeliso.micron.peer.PeerRegistry;
+import name.maxdeliso.micron.selector.EventLooper;
+import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
+import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,12 +15,14 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public final class SingleThreadedEventLooper implements EventLooper, PeerCountingReadWriteSelector {
+public final class SingleThreadedEventLooper implements
+        EventLooper,
+        PeerCountingReadWriteSelector,
+        NonBlockingAcceptorSelector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooper.class);
 
@@ -37,17 +42,19 @@ public final class SingleThreadedEventLooper implements EventLooper, PeerCountin
 
     private ServerSocketChannel serverSocketChannel;
 
-    public SingleThreadedEventLooper(int serverPort,
-                                     int bufferSize,
-                                     int selectTimeoutSeconds,
-                                     int messageListCap,
-                                     String noNewDataMessage) {
+    public SingleThreadedEventLooper(final int serverPort,
+                                     final int bufferSize,
+                                     final int selectTimeoutSeconds,
+                                     final int messageListCap,
+                                     final String noNewDataMessage,
+                                     final PeerRegistry peerRegistry,
+                                     final MessageStore messageStore) {
         this.serverPort = serverPort;
         this.incomingBuffer = ByteBuffer.allocateDirect(bufferSize);
         this.selectTimeoutSeconds = selectTimeoutSeconds;
         this.noNewDataMessage = noNewDataMessage;
-        this.peerRegistry = new PeerRegistry();
-        this.messageStore = new MessageStore(messageListCap, peerRegistry);
+        this.peerRegistry = peerRegistry;
+        this.messageStore = messageStore;
         this.latch = new CountDownLatch(1);
     }
 
@@ -74,7 +81,8 @@ public final class SingleThreadedEventLooper implements EventLooper, PeerCountin
                     }
 
                     if (selectedKey.isAcceptable()) {
-                        handleAccept(serverSocketChannel, selector);
+                        handleAccept(serverSocketChannel, selector,
+                                (channel, key) -> associatePeer(channel, key, peerRegistry));
                     }
 
                     if (selectedKey.isValid() && selectedKey.isWritable()) {
@@ -82,9 +90,8 @@ public final class SingleThreadedEventLooper implements EventLooper, PeerCountin
                     }
 
                     if (selectedKey.isValid() && selectedKey.isReadable()) {
-                        handleReadableKey(selectedKey, peerRegistry, peer -> {
-                            handleReadablePeer(peer).ifPresent(messageStore::add);
-                        });
+                        handleReadableKey(selectedKey, peerRegistry,
+                                peer -> handleReadablePeer(peer).ifPresent(messageStore::add));
                     }
                 }
             }
@@ -102,22 +109,6 @@ public final class SingleThreadedEventLooper implements EventLooper, PeerCountin
         }
 
         latch.await();
-    }
-
-    private void handleAccept(final ServerSocketChannel serverSocketChannel, final Selector selector)
-            throws IOException {
-        Optional.ofNullable(serverSocketChannel.accept())
-                .ifPresent(socketChannel -> handleAccept(socketChannel, selector));
-    }
-
-    private void handleAccept(final SocketChannel socketChannel, final Selector selector) {
-        try {
-            socketChannel.configureBlocking(false);
-            final var peerKey = socketChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-            associatePeer(socketChannel, peerKey, peerRegistry);
-        } catch (final IOException ioe) {
-            LOGGER.warn("not allocating peer for socket channel that failed to be registered", ioe);
-        }
     }
 
     private Optional<String> handleReadablePeer(final Peer peer) {
