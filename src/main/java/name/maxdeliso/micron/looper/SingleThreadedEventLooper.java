@@ -61,7 +61,7 @@ public final class SingleThreadedEventLooper implements
 
     @Override
     public void loop() throws IOException {
-        LOGGER.trace("entering event loop");
+        LOGGER.info("entering event loop");
 
         try (final var serverSocketChannel = selectorProvider.openServerSocketChannel();
              final var socketChannel = serverSocketChannel.bind(socketAddress);
@@ -99,7 +99,7 @@ public final class SingleThreadedEventLooper implements
         } finally {
             latch.countDown();
 
-            LOGGER.trace("exiting event loop");
+            LOGGER.info("exiting event loop");
         }
     }
 

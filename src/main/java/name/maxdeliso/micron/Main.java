@@ -3,7 +3,6 @@ package name.maxdeliso.micron;
 import name.maxdeliso.micron.looper.EventLooper;
 import name.maxdeliso.micron.looper.SingleThreadedEventLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
-import name.maxdeliso.micron.message.MessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import org.slf4j.Logger;
@@ -32,8 +31,6 @@ final class Main {
     public static void main(final String[] args) {
         final PeerRegistry peerRegistry = new InMemoryPeerRegistry();
 
-        final MessageStore messageStore = new InMemoryMessageStore(MAX_MESSAGES, peerRegistry);
-
         final EventLooper looper =
                 new SingleThreadedEventLooper(
                         new InetSocketAddress(SERVER_PORT),
@@ -42,7 +39,7 @@ final class Main {
                         MAX_MESSAGES,
                         NO_NEW_DATA_MESSAGE,
                         peerRegistry,
-                        messageStore,
+                        new InMemoryMessageStore(MAX_MESSAGES, peerRegistry),
                         SelectorProvider.provider());
 
         getRuntime().addShutdownHook(new Thread(() -> {
