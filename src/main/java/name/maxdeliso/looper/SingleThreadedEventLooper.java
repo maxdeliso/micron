@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public final class SingleThreadedEventLooper implements EventLooper {
+public final class SingleThreadedEventLooper implements EventLooper, PeerCountingReadWriteSelector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooper.class);
 
@@ -78,11 +78,13 @@ public final class SingleThreadedEventLooper implements EventLooper {
                     }
 
                     if (selectedKey.isValid() && selectedKey.isWritable()) {
-                        handleWritableKey(selectedKey);
+                        handleWritableKey(selectedKey, peerRegistry, this::handleWritablePeer);
                     }
 
                     if (selectedKey.isValid() && selectedKey.isReadable()) {
-                        handleReadableKey(selectedKey);
+                        handleReadableKey(selectedKey, peerRegistry, peer -> {
+                            handleReadablePeer(peer).ifPresent(messageStore::add);
+                        });
                     }
                 }
             }
@@ -95,15 +97,11 @@ public final class SingleThreadedEventLooper implements EventLooper {
 
     @Override
     public void halt() throws InterruptedException, IOException {
-        if(serverSocketChannel != null && serverSocketChannel.isOpen()) {
+        if (serverSocketChannel != null && serverSocketChannel.isOpen()) {
             serverSocketChannel.close();
         }
 
         latch.await();
-    }
-
-    private Optional<Peer> lookupPeerDescriptor(final SelectionKey selectionKey) {
-        return Optional.ofNullable(selectionKey).map(key -> (Long) key.attachment()).flatMap(peerRegistry::get);
     }
 
     private void handleAccept(final ServerSocketChannel serverSocketChannel, final Selector selector)
@@ -115,18 +113,11 @@ public final class SingleThreadedEventLooper implements EventLooper {
     private void handleAccept(final SocketChannel socketChannel, final Selector selector) {
         try {
             socketChannel.configureBlocking(false);
-
             final var peerKey = socketChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-            final var peer = peerRegistry.allocatePeer(socketChannel);
-
-            peerKey.attach(peer.getIndex());
+            associatePeer(socketChannel, peerKey, peerRegistry);
         } catch (final IOException ioe) {
             LOGGER.warn("not allocating peer for socket channel that failed to be registered", ioe);
         }
-    }
-
-    private void handleReadableKey(final SelectionKey readSelectedKey) {
-        lookupPeerDescriptor(readSelectedKey).flatMap(this::handleReadablePeer).ifPresent(messageStore::add);
     }
 
     private Optional<String> handleReadablePeer(final Peer peer) {
@@ -163,10 +154,6 @@ public final class SingleThreadedEventLooper implements EventLooper {
         }
 
         return Optional.ofNullable(incoming);
-    }
-
-    private void handleWritableKey(final SelectionKey writeSelectedKey) {
-        lookupPeerDescriptor(writeSelectedKey).ifPresent(this::handleWritablePeer);
     }
 
     private void handleWritablePeer(final Peer peer) {
