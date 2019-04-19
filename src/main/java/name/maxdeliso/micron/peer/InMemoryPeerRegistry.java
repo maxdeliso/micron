@@ -25,14 +25,14 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
     }
 
     @Override
-    public Optional<name.maxdeliso.micron.peer.Peer> get(final Long index) {
+    public Optional<Peer> get(final Long index) {
         return Optional.ofNullable(peerMap.get(index));
     }
 
     @Override
-    public name.maxdeliso.micron.peer.Peer allocatePeer(final SocketChannel clientChannel) {
+    public Peer allocatePeer(final SocketChannel clientChannel) {
         final var newPeerNumber = peerCounter.get();
-        final var newPeer = new name.maxdeliso.micron.peer.Peer(newPeerNumber, clientChannel);
+        final var newPeer = new Peer(newPeerNumber, clientChannel);
 
         peerMap.put(newPeerNumber, newPeer);
         peerCounter.incrementAndGet();
@@ -44,18 +44,18 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
         return peerMap
                 .values()
                 .parallelStream()
-                .map(name.maxdeliso.micron.peer.Peer::getPosition)
+                .map(Peer::getPosition)
                 .map(Math::toIntExact)
                 .min(Integer::compare);
     }
 
     @Override
     public void resetPositions() {
-        peerMap.values().parallelStream().forEach(name.maxdeliso.micron.peer.Peer::resetPosition);
+        peerMap.values().parallelStream().forEach(Peer::resetPosition);
     }
 
     @Override
-    public void evictPeer(final name.maxdeliso.micron.peer.Peer peer) {
+    public void evictPeer(final Peer peer) {
         try {
             peer.getSocketChannel().close();
         } catch (final IOException ioe) {
