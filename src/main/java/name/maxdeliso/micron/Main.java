@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.spi.SelectorProvider;
 
 import static java.lang.Runtime.getRuntime;
 
@@ -34,13 +36,14 @@ final class Main {
 
         final EventLooper looper =
                 new SingleThreadedEventLooper(
-                        SERVER_PORT,
+                        new InetSocketAddress(SERVER_PORT),
                         BUFFER_SIZE,
                         SELECT_TIMEOUT_SECONDS,
                         MAX_MESSAGES,
                         NO_NEW_DATA_MESSAGE,
                         peerRegistry,
-                        messageStore);
+                        messageStore,
+                        SelectorProvider.provider());
 
         getRuntime().addShutdownHook(new Thread(() -> {
             try {

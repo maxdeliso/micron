@@ -10,11 +10,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.spi.SelectorProvider;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -25,8 +25,6 @@ public final class SingleThreadedEventLooper implements
         NonBlockingAcceptorSelector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooper.class);
-
-    private final int serverPort;
 
     private final String noNewDataMessage;
 
@@ -39,22 +37,26 @@ public final class SingleThreadedEventLooper implements
     private final MessageStore messageStore;
 
     private final CountDownLatch latch;
+    private final SelectorProvider selectorProvider;
+    private final SocketAddress socketAddress;
 
     private ServerSocketChannel serverSocketChannel;
 
-    public SingleThreadedEventLooper(final int serverPort,
+    public SingleThreadedEventLooper(final SocketAddress socketAddress,
                                      final int bufferSize,
                                      final int selectTimeoutSeconds,
                                      final int messageListCap,
                                      final String noNewDataMessage,
                                      final PeerRegistry peerRegistry,
-                                     final MessageStore messageStore) {
-        this.serverPort = serverPort;
+                                     final MessageStore messageStore,
+                                     final SelectorProvider selectorProvider) {
+        this.socketAddress = socketAddress;
         this.incomingBuffer = ByteBuffer.allocateDirect(bufferSize);
         this.selectTimeoutSeconds = selectTimeoutSeconds;
         this.noNewDataMessage = noNewDataMessage;
         this.peerRegistry = peerRegistry;
         this.messageStore = messageStore;
+        this.selectorProvider = selectorProvider;
         this.latch = new CountDownLatch(1);
     }
 
@@ -62,9 +64,9 @@ public final class SingleThreadedEventLooper implements
     public void loop() throws IOException {
         LOGGER.trace("entering event loop");
 
-        try (final var serverSocketChannel = ServerSocketChannel.open();
-             final var socketChannel = serverSocketChannel.bind(new InetSocketAddress(serverPort));
-             final var selector = Selector.open()) {
+        try (final var serverSocketChannel = selectorProvider.openServerSocketChannel();
+             final var socketChannel = serverSocketChannel.bind(socketAddress);
+             final var selector = selectorProvider.openSelector()) {
 
             this.serverSocketChannel = serverSocketChannel;
             serverSocketChannel.configureBlocking(false);
@@ -104,8 +106,8 @@ public final class SingleThreadedEventLooper implements
 
     @Override
     public void halt() throws InterruptedException, IOException {
-        if (serverSocketChannel != null && serverSocketChannel.isOpen()) {
-            serverSocketChannel.close();
+        if (this.serverSocketChannel != null && serverSocketChannel.isOpen()) {
+            this.serverSocketChannel.close();
         }
 
         latch.await();

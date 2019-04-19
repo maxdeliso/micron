@@ -9,5 +9,8 @@
         <module name="rapidSelector" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="rapidSelector" target="12" />
+    </bytecodeTargetLevel>
   </component>
 </project>
