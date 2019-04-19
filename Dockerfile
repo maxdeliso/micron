@@ -5,6 +5,6 @@ RUN mvn dependency:go-offline
 COPY . .
 RUN mvn package
 
-FROM openjdk:12-oracle
+FROM openjdk:13-alpine
 COPY --from=builder /usr/src/micron/target/micron-jar-with-dependencies.jar /micron.jar
-CMD ["/usr/bin/java", "-jar", "/micron.jar"]
+CMD ["java", "-jar", "/micron.jar"]
