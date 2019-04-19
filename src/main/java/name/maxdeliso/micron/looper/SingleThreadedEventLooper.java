@@ -3,7 +3,6 @@ package name.maxdeliso.micron.looper;
 import name.maxdeliso.micron.message.MessageStore;
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
-import name.maxdeliso.micron.selector.EventLooper;
 import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
 import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
 import org.slf4j.Logger;
@@ -157,7 +156,7 @@ public final class SingleThreadedEventLooper implements
 
             bytesToWriteOpt.ifPresent(_bytes -> peer.advancePosition());
 
-            LOGGER.info("wrote {} bytes to peer {}", bytesWritten, peer);
+            LOGGER.trace("wrote {} bytes to peer {}", bytesWritten, peer);
         } catch (final IOException ioe) {
             peerRegistry.evictPeer(peer);
 

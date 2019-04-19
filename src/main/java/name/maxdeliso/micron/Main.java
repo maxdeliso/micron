@@ -1,11 +1,11 @@
 package name.maxdeliso.micron;
 
+import name.maxdeliso.micron.looper.EventLooper;
 import name.maxdeliso.micron.looper.SingleThreadedEventLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
 import name.maxdeliso.micron.message.MessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
 import name.maxdeliso.micron.peer.PeerRegistry;
-import name.maxdeliso.micron.selector.EventLooper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
