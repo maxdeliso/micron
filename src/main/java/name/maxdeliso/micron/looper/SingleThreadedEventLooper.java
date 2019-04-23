@@ -14,6 +14,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +26,9 @@ public final class SingleThreadedEventLooper implements
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooper.class);
 
-    private final byte[] noNewDataMessageBytes;
+    private final String noNewDataMessage;
+
+    private final Charset messageCharset;
 
     private final long selectTimeoutSeconds;
 
@@ -44,14 +47,16 @@ public final class SingleThreadedEventLooper implements
     public SingleThreadedEventLooper(final SocketAddress socketAddress,
                                      final int bufferSize,
                                      final int selectTimeoutSeconds,
-                                     final byte[] noNewDataMessageBytes,
+                                     final String noNewDataMessage,
+                                     final Charset messageCharset,
                                      final PeerRegistry peerRegistry,
                                      final MessageStore messageStore,
                                      final SelectorProvider selectorProvider) {
         this.socketAddress = socketAddress;
         this.incomingBuffer = ByteBuffer.allocateDirect(bufferSize);
         this.selectTimeoutSeconds = selectTimeoutSeconds;
-        this.noNewDataMessageBytes = noNewDataMessageBytes;
+        this.noNewDataMessage = noNewDataMessage;
+        this.messageCharset = messageCharset;
         this.peerRegistry = peerRegistry;
         this.messageStore = messageStore;
         this.selectorProvider = selectorProvider;
@@ -141,7 +146,7 @@ public final class SingleThreadedEventLooper implements
             incomingBuffer.flip();
             incomingBuffer.get(incomingBytes, 0, bytesRead);
             incomingBuffer.rewind();
-            incoming = new String(incomingBytes);
+            incoming = new String(incomingBytes, messageCharset);
         }
 
         return Optional.ofNullable(incoming);
@@ -149,9 +154,12 @@ public final class SingleThreadedEventLooper implements
 
     private void handleWritablePeer(final Peer peer) {
         try {
-            final var bytesToWriteOpt = messageStore.get(peer.getPosition()).map(String::getBytes);
-            final var bufferToWrite = ByteBuffer.wrap(bytesToWriteOpt.orElse(noNewDataMessageBytes));
-            final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
+            final var bytesToWriteOpt = messageStore
+                    .get(peer.getPosition()).map(String::getBytes);
+            final var bufferToWrite = ByteBuffer
+                    .wrap(bytesToWriteOpt.orElse(noNewDataMessage.getBytes(messageCharset)));
+            final var bytesWritten = peer
+                    .getSocketChannel().write(bufferToWrite);
 
             bytesToWriteOpt.ifPresent(_bytes -> peer.advancePosition());
 

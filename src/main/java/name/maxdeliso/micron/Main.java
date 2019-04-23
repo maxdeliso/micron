@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.spi.SelectorProvider;
+import java.nio.charset.StandardCharsets;
 
 import static java.lang.Runtime.getRuntime;
 
@@ -36,7 +37,8 @@ final class Main {
                         new InetSocketAddress(SERVER_PORT),
                         BUFFER_SIZE,
                         SELECT_TIMEOUT_SECONDS,
-                        NO_NEW_DATA_MESSAGE.getBytes(),
+                        NO_NEW_DATA_MESSAGE,
+                        StandardCharsets.UTF_8,
                         peerRegistry,
                         new InMemoryMessageStore(MAX_MESSAGES, peerRegistry),
                         SelectorProvider.provider());

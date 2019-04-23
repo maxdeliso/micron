@@ -52,7 +52,7 @@ public final class InMemoryMessageStore implements MessageStore {
     }
 
     private void rotateBuffer() {
-        synchronized (messages) {
+        synchronized (this.messages) {
             final var minimumRightExtent = peerRegistry.minPosition().orElse(maxMessages);
             final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, maxMessages));
 
