@@ -1,13 +1,17 @@
 package name.maxdeliso.micron.message;
 
 
+import lombok.RequiredArgsConstructor;
+
 import name.maxdeliso.micron.peer.PeerRegistry;
+
 import net.jcip.annotations.ThreadSafe;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @ThreadSafe
 public final class InMemoryMessageStore implements MessageStore {
 

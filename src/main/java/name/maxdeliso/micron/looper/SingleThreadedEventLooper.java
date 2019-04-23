@@ -1,12 +1,14 @@
 package name.maxdeliso.micron.looper;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.MessageStore;
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
 import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -17,67 +19,37 @@ import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
+@Slf4j
+@Builder
 public final class SingleThreadedEventLooper implements
     EventLooper,
     PeerCountingReadWriteSelector,
     NonBlockingAcceptorSelector {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooper.class);
+  private final SocketAddress socketAddress;
+
+  private final long selectTimeoutSeconds;
 
   private final String noNewDataMessage;
 
   private final Charset messageCharset;
 
-  private final long selectTimeoutSeconds;
-
-  private final ByteBuffer incomingBuffer;
-
   private final PeerRegistry peerRegistry;
 
   private final MessageStore messageStore;
 
-  private final CountDownLatch latch;
   private final SelectorProvider selectorProvider;
-  private final SocketAddress socketAddress;
 
-  private ServerSocketChannel serverSocketChannel;
+  private final ByteBuffer incomingBuffer;
 
-  /**
-   * Constructs a single threaded event looper.
-   *
-   * @param socketAddress        the address to listen on.
-   * @param bufferSize           the amount of data at most to buffer.
-   * @param selectTimeoutSeconds how long to wait at most before stopping waiting for events.
-   * @param noNewDataMessage     the message to send to connected clients when there's no new data.
-   * @param messageCharset       the character set to decode/encode strings with.
-   * @param peerRegistry         a registry of peers.
-   * @param messageStore         a store of messages.
-   * @param selectorProvider     a provider for selectors, used to process events.
-   */
-  public SingleThreadedEventLooper(final SocketAddress socketAddress,
-                                   final int bufferSize,
-                                   final int selectTimeoutSeconds,
-                                   final String noNewDataMessage,
-                                   final Charset messageCharset,
-                                   final PeerRegistry peerRegistry,
-                                   final MessageStore messageStore,
-                                   final SelectorProvider selectorProvider) {
-    this.socketAddress = socketAddress;
-    this.incomingBuffer = ByteBuffer.allocateDirect(bufferSize);
-    this.selectTimeoutSeconds = selectTimeoutSeconds;
-    this.noNewDataMessage = noNewDataMessage;
-    this.messageCharset = messageCharset;
-    this.peerRegistry = peerRegistry;
-    this.messageStore = messageStore;
-    this.selectorProvider = selectorProvider;
-    this.latch = new CountDownLatch(1);
-  }
+  ServerSocketChannel serverSocketChannel;
+
+  private final CountDownLatch latch = new CountDownLatch(1);
 
   @Override
   public void loop() throws IOException {
-    LOGGER.info("entering event loop");
+    log.info("entering event loop");
 
     try (final var serverSocketChannel = selectorProvider.openServerSocketChannel();
          final var socketChannel = serverSocketChannel.bind(socketAddress);
@@ -88,11 +60,11 @@ public final class SingleThreadedEventLooper implements
       socketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
       while (serverSocketChannel.isOpen()) {
-        selector.select(TimeUnit.SECONDS.toMillis(this.selectTimeoutSeconds));
+        selector.select(SECONDS.toMillis(this.selectTimeoutSeconds));
 
         for (final var selectedKey : selector.selectedKeys()) {
           if (!selectedKey.isValid()) {
-            LOGGER.warn("selected invalid key");
+            log.warn("selected invalid key");
 
             continue;
           }
@@ -115,7 +87,7 @@ public final class SingleThreadedEventLooper implements
     } finally {
       latch.countDown();
 
-      LOGGER.info("exiting event loop");
+      log.info("exiting event loop");
     }
   }
 
@@ -136,7 +108,7 @@ public final class SingleThreadedEventLooper implements
     } catch (final IOException ioe) {
       peerRegistry.evictPeer(peer);
 
-      LOGGER.warn("failed to read from peer {}, so evicted", peer, ioe);
+      log.warn("failed to read from peer {}, so evicted", peer, ioe);
 
       return Optional.empty();
     }
@@ -146,13 +118,13 @@ public final class SingleThreadedEventLooper implements
     if (bytesRead == 0) {
       incoming = null;
 
-      LOGGER.trace("read zero bytes from peer {}", peer);
+      log.trace("read zero bytes from peer {}", peer);
     } else if (bytesRead == -1) {
       incoming = null;
 
       peerRegistry.evictPeer(peer);
 
-      LOGGER.warn("received end of stream from peer {}", peer);
+      log.warn("received end of stream from peer {}", peer);
     } else {
       final var incomingBytes = new byte[bytesRead];
       incomingBuffer.flip();
@@ -173,13 +145,13 @@ public final class SingleThreadedEventLooper implements
       final var bytesWritten = peer
           .getSocketChannel().write(bufferToWrite);
 
-      bytesToWriteOpt.ifPresent(_bytes -> peer.advancePosition());
+      bytesToWriteOpt.ifPresent(bytes -> peer.advancePosition());
 
-      LOGGER.trace("wrote {} bytes to peer {}", bytesWritten, peer);
+      log.trace("wrote {} bytes to peer {}", bytesWritten, peer);
     } catch (final IOException ioe) {
       peerRegistry.evictPeer(peer);
 
-      LOGGER.warn("failed to write to peer {}", peer, ioe);
+      log.warn("failed to write to peer {}", peer, ioe);
     }
   }
 }

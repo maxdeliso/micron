@@ -1,8 +1,8 @@
 package name.maxdeliso.micron.peer;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.jcip.annotations.ThreadSafe;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
@@ -10,10 +10,10 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+@Slf4j
+@RequiredArgsConstructor
 @ThreadSafe
 public final class InMemoryPeerRegistry implements PeerRegistry {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(InMemoryPeerRegistry.class);
 
   private final AtomicLong peerCounter;
 
@@ -59,7 +59,7 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
     try {
       peer.getSocketChannel().close();
     } catch (final IOException ioe) {
-      LOGGER.warn("failed to close channel on peer eviction", ioe);
+      log.warn("failed to close channel during peer eviction", ioe);
     } finally {
       peerMap.remove(peer.getIndex());
     }

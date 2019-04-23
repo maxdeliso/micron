@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -43,15 +44,17 @@ public class SingleThreadedEventLooperTest {
   public void buildLooper() {
     selectorProvider = new TestSelectorProvider();
 
-    singleThreadedEventLooper = new SingleThreadedEventLooper(
-        socketAddress,
-        TEST_BUFFER_SIZE,
-        TEST_SELECT_TIMEOUT_SECONDS,
-        TEST_NO_NEW_DATA_MESSAGE,
-        StandardCharsets.UTF_8,
-        peerRegistry,
-        messageStore,
-        selectorProvider);
+    singleThreadedEventLooper = SingleThreadedEventLooper
+        .builder()
+        .socketAddress(socketAddress)
+        .incomingBuffer(ByteBuffer.allocateDirect(TEST_BUFFER_SIZE))
+        .selectTimeoutSeconds(TEST_SELECT_TIMEOUT_SECONDS)
+        .noNewDataMessage(TEST_NO_NEW_DATA_MESSAGE)
+        .messageCharset(StandardCharsets.UTF_8)
+        .peerRegistry(peerRegistry)
+        .messageStore(messageStore)
+        .selectorProvider(selectorProvider)
+        .build();
   }
 
   @Test
