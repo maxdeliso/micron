@@ -9,59 +9,65 @@ import java.util.concurrent.atomic.AtomicLong;
 @ThreadSafe
 public final class Peer {
 
-    private final long index;
+  private final long index;
 
-    private final AtomicLong position;
+  private final AtomicLong position;
 
-    private final SocketChannel socketChannel;
+  private final SocketChannel socketChannel;
 
-    public Peer(final long index, final SocketChannel socketChannel) {
-        this.index = index;
-        this.position = new AtomicLong(0);
-        this.socketChannel = socketChannel;
+  /**
+   * Construct a peer, which identifies a connected user.
+   *
+   * @param index         the numeric index of the peer.
+   * @param socketChannel a socket channel with which to communicate with them.
+   */
+  public Peer(final long index, final SocketChannel socketChannel) {
+    this.index = index;
+    this.position = new AtomicLong(0);
+    this.socketChannel = socketChannel;
+  }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if (this == obj) {
+      return true;
     }
 
-    @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
-            return true;
-        }
-
-        if (obj == null || getClass() != obj.getClass()){
-            return false;
-        }
-
-        final Peer that = (Peer) obj;
-        return this.index == that.index;
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(index);
-    }
+    final Peer that = (Peer) obj;
+    return this.index == that.index;
+  }
 
-    public SocketChannel getSocketChannel() {
-        return socketChannel;
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(index);
+  }
 
-    public long getPosition() {
-        return position.get();
-    }
+  public SocketChannel getSocketChannel() {
+    return socketChannel;
+  }
 
-    public void advancePosition() {
-        this.position.incrementAndGet();
-    }
+  public long getPosition() {
+    return position.get();
+  }
 
-    public long getIndex() {
-        return index;
-    }
+  public void advancePosition() {
+    this.position.incrementAndGet();
+  }
 
-    public void resetPosition() {
-        this.position.set(0);
-    }
+  public long getIndex() {
+    return index;
+  }
 
-    @Override
-    public String toString() {
-        return "Peer{index=" + index + ", position=" + position + '}';
-    }
+  public void resetPosition() {
+    this.position.set(0);
+  }
+
+  @Override
+  public String toString() {
+    return "Peer{index=" + index + ", position=" + position + '}';
+  }
 }

@@ -11,54 +11,60 @@ import java.util.Optional;
 @ThreadSafe
 public final class InMemoryMessageStore implements MessageStore {
 
-    private final int maxMessages;
+  private final int maxMessages;
 
-    private final List<String> messages;
+  private final List<String> messages;
 
-    private final PeerRegistry peerRegistry;
+  private final PeerRegistry peerRegistry;
 
-    public InMemoryMessageStore(final int maxMessages, final PeerRegistry peerRegistry) {
-        this.maxMessages = maxMessages;
-        this.messages = new ArrayList<>(maxMessages);
-        this.peerRegistry = peerRegistry;
+  /**
+   * Construct an in memory message store.
+   *
+   * @param maxMessages  the total number of events to hold in memory at once.
+   * @param peerRegistry a registry of peers.
+   */
+  public InMemoryMessageStore(final int maxMessages, final PeerRegistry peerRegistry) {
+    this.maxMessages = maxMessages;
+    this.messages = new ArrayList<>(maxMessages);
+    this.peerRegistry = peerRegistry;
+  }
+
+  @Override
+  public void add(final String received) {
+    synchronized (this.messages) {
+      if (messages.size() >= maxMessages) {
+        rotateBuffer();
+      }
+
+      messages.add(received);
     }
+  }
 
-    @Override
-    public void add(final String received) {
-        synchronized (this.messages) {
-            if (messages.size() >= maxMessages) {
-                rotateBuffer();
-            }
+  @Override
+  public Optional<String> get(final long messageIndex) {
+    final Long messageIndexBoxed = messageIndex;
 
-            messages.add(received);
-        }
+    synchronized (this.messages) {
+      if (messageIndex < messages.size()) {
+        final String message;
+
+        message = messages.get(messageIndexBoxed.intValue());
+
+        return Optional.of(message);
+      } else {
+        return Optional.empty();
+      }
     }
+  }
 
-    @Override
-    public Optional<String> get(final long messageIndex) {
-        final Long messageIndexBoxed = messageIndex;
+  private void rotateBuffer() {
+    synchronized (this.messages) {
+      final var minimumRightExtent = peerRegistry.minPosition().orElse(maxMessages);
+      final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, maxMessages));
 
-        synchronized (this.messages) {
-            if (messageIndex < messages.size()) {
-                final String message;
-
-                message = messages.get(messageIndexBoxed.intValue());
-
-                return Optional.of(message);
-            } else {
-                return Optional.empty();
-            }
-        }
+      messages.clear();
+      messages.addAll(leftOver);
+      peerRegistry.resetPositions();
     }
-
-    private void rotateBuffer() {
-        synchronized (this.messages) {
-            final var minimumRightExtent = peerRegistry.minPosition().orElse(maxMessages);
-            final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, maxMessages));
-
-            messages.clear();
-            messages.addAll(leftOver);
-            peerRegistry.resetPositions();
-        }
-    }
+  }
 }

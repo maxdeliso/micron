@@ -1,5 +1,5 @@
 package name.maxdeliso.micron.peer;
 
 public class InMemoryPeerRegistryTest {
-    // TODO: add unit tests
+  // TODO: add unit tests
 }

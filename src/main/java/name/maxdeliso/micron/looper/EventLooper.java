@@ -3,6 +3,7 @@ package name.maxdeliso.micron.looper;
 import java.io.IOException;
 
 public interface EventLooper {
-    void loop() throws IOException;
-    void halt() throws InterruptedException, IOException;
+  void loop() throws IOException;
+
+  void halt() throws InterruptedException, IOException;
 }

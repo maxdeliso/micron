@@ -18,63 +18,63 @@ import java.nio.charset.StandardCharsets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SingleThreadedEventLooperTest {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooperTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooperTest.class);
 
-    private static final int TEST_BUFFER_SIZE = 1;
+  private static final int TEST_BUFFER_SIZE = 1;
 
-    private static final int TEST_SELECT_TIMEOUT_SECONDS = 1;
+  private static final int TEST_SELECT_TIMEOUT_SECONDS = 1;
 
-    private static final String TEST_NO_NEW_DATA_MESSAGE = "\b";
+  private static final String TEST_NO_NEW_DATA_MESSAGE = "\b";
 
-    private SingleThreadedEventLooper singleThreadedEventLooper;
+  private SingleThreadedEventLooper singleThreadedEventLooper;
 
-    @Mock
-    private SocketAddress socketAddress;
+  @Mock
+  private SocketAddress socketAddress;
 
-    @Mock
-    private PeerRegistry peerRegistry;
+  @Mock
+  private PeerRegistry peerRegistry;
 
-    @Mock
-    private MessageStore messageStore;
+  @Mock
+  private MessageStore messageStore;
 
-    private TestSelectorProvider selectorProvider;
+  private TestSelectorProvider selectorProvider;
 
-    @Before
-    public void buildLooper() {
-        selectorProvider = new TestSelectorProvider();
+  @Before
+  public void buildLooper() {
+    selectorProvider = new TestSelectorProvider();
 
-        singleThreadedEventLooper = new SingleThreadedEventLooper(
-                socketAddress,
-                TEST_BUFFER_SIZE,
-                TEST_SELECT_TIMEOUT_SECONDS,
-                TEST_NO_NEW_DATA_MESSAGE,
-                StandardCharsets.UTF_8,
-                peerRegistry,
-                messageStore,
-                selectorProvider);
-    }
+    singleThreadedEventLooper = new SingleThreadedEventLooper(
+        socketAddress,
+        TEST_BUFFER_SIZE,
+        TEST_SELECT_TIMEOUT_SECONDS,
+        TEST_NO_NEW_DATA_MESSAGE,
+        StandardCharsets.UTF_8,
+        peerRegistry,
+        messageStore,
+        selectorProvider);
+  }
 
-    @Test
-    public void testLoopStartsAndStops() throws InterruptedException {
-        final var startThread = new Thread(() -> {
-            try {
-                singleThreadedEventLooper.loop();
-            } catch (final IOException ioe) {
-                LOGGER.warn("I/O exception while looping", ioe);
-            }
-        });
+  @Test
+  public void testLoopStartsAndStops() throws InterruptedException {
+    final var startThread = new Thread(() -> {
+      try {
+        singleThreadedEventLooper.loop();
+      } catch (final IOException ioe) {
+        LOGGER.warn("I/O exception while looping", ioe);
+      }
+    });
 
-        final var stopThread = new Thread(() -> {
-            try {
-                singleThreadedEventLooper.halt();
-            } catch (final InterruptedException | IOException exc) {
-                LOGGER.warn("exception while halting", exc);
-            }
-        });
+    final var stopThread = new Thread(() -> {
+      try {
+        singleThreadedEventLooper.halt();
+      } catch (final InterruptedException | IOException exc) {
+        LOGGER.warn("exception while halting", exc);
+      }
+    });
 
-        LOGGER.trace("attempting joins...");
-        startThread.join();
-        stopThread.join();
-        LOGGER.trace("... joins completed");
-    }
+    LOGGER.trace("attempting joins...");
+    startThread.join();
+    stopThread.join();
+    LOGGER.trace("... joins completed");
+  }
 }
