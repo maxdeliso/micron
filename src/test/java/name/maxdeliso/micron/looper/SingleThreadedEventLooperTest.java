@@ -1,6 +1,5 @@
 package name.maxdeliso.micron.looper;
 
-
 import name.maxdeliso.micron.message.MessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.support.TestSelectorProvider;
@@ -16,6 +15,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SingleThreadedEventLooperTest {
@@ -57,27 +57,45 @@ public class SingleThreadedEventLooperTest {
         .build();
   }
 
-  @Test
-  public void testLoopStartsAndStops() throws InterruptedException {
-    final var startThread = new Thread(() -> {
+  private Thread buildStarterThread(final SingleThreadedEventLooper looper) {
+    return new Thread(() -> {
       try {
-        singleThreadedEventLooper.loop();
+        looper.loop();
       } catch (final IOException ioe) {
         LOGGER.warn("I/O exception while looping", ioe);
       }
     });
+  }
 
-    final var stopThread = new Thread(() -> {
+  private Thread buildJoinerThread(final SingleThreadedEventLooper looper) {
+    return new Thread(() -> {
       try {
-        singleThreadedEventLooper.halt();
+        looper.halt();
       } catch (final InterruptedException | IOException exc) {
         LOGGER.warn("exception while halting", exc);
       }
     });
+  }
 
-    LOGGER.trace("attempting joins...");
-    startThread.join();
-    stopThread.join();
-    LOGGER.trace("... joins completed");
+  private void joinSerially(final Thread... threads) {
+    LOGGER.trace("attempting join of {} threads", threads.length);
+
+    Arrays.stream(threads).forEach(thread -> {
+      try {
+        thread.join();
+      } catch (final InterruptedException ie) {
+        throw new RuntimeException(ie);
+      }
+    });
+
+    LOGGER.trace("joins completed normally");
+  }
+
+  @Test
+  public void testLoopStartsAndStops() {
+    final var starterThread = buildStarterThread(singleThreadedEventLooper);
+    final var joinerThread = buildJoinerThread(singleThreadedEventLooper);
+
+    joinSerially(starterThread, joinerThread);
   }
 }
