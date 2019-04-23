@@ -14,16 +14,19 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.channels.ServerSocketChannel;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SingleThreadedEventLooperTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooperTest.class);
+
     private static final int TEST_BUFFER_SIZE = 1;
+
     private static final int TEST_SELECT_TIMEOUT_SECONDS = 1;
-    private static final int TEST_MESSAGE_TEST_CAP = 1;
+
     private static final String TEST_NO_NEW_DATA_MESSAGE = "\b";
+
     private SingleThreadedEventLooper singleThreadedEventLooper;
+
     @Mock
     private SocketAddress socketAddress;
 
@@ -32,12 +35,6 @@ public class SingleThreadedEventLooperTest {
 
     @Mock
     private MessageStore messageStore;
-
-    @Mock
-    private ServerSocketChannel serverSocketChannel;
-
-    @Mock
-    private ServerSocketChannel boundServerSocketChannel;
 
     private TestSelectorProvider selectorProvider;
 
@@ -49,7 +46,6 @@ public class SingleThreadedEventLooperTest {
                 socketAddress,
                 TEST_BUFFER_SIZE,
                 TEST_SELECT_TIMEOUT_SECONDS,
-                TEST_MESSAGE_TEST_CAP,
                 TEST_NO_NEW_DATA_MESSAGE,
                 peerRegistry,
                 messageStore,
@@ -74,7 +70,9 @@ public class SingleThreadedEventLooperTest {
             }
         });
 
+        LOGGER.trace("attempting joins...");
         startThread.join();
         stopThread.join();
+        LOGGER.trace("... joins completed");
     }
 }

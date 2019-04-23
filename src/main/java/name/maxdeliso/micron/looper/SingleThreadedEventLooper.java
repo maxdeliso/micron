@@ -44,7 +44,6 @@ public final class SingleThreadedEventLooper implements
     public SingleThreadedEventLooper(final SocketAddress socketAddress,
                                      final int bufferSize,
                                      final int selectTimeoutSeconds,
-                                     final int messageListCap,
                                      final String noNewDataMessage,
                                      final PeerRegistry peerRegistry,
                                      final MessageStore messageStore,

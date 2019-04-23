@@ -9,8 +9,8 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.Collections;
 import java.util.Set;
 
-public class TestServerSocketChannel extends ServerSocketChannel {
-    TestServerSocketChannel(final SelectorProvider provider) {
+public final class TestServerSocketChannel extends ServerSocketChannel {
+    public TestServerSocketChannel(final SelectorProvider provider) {
         super(provider);
     }
 
@@ -51,11 +51,9 @@ public class TestServerSocketChannel extends ServerSocketChannel {
 
     @Override
     protected void implCloseSelectableChannel() {
-
     }
 
     @Override
     protected void implConfigureBlocking(boolean block) {
-
     }
 }

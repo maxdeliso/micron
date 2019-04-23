@@ -9,18 +9,19 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.Collections;
 import java.util.Set;
 
-public class TestSelector extends AbstractSelector {
-    TestSelector(SelectorProvider provider) {
+public final class TestSelector extends AbstractSelector {
+    public TestSelector(SelectorProvider provider) {
         super(provider);
     }
 
     @Override
     protected void implCloseSelector() {
-
     }
 
     @Override
-    protected SelectionKey register(AbstractSelectableChannel ch, int ops, Object att) {
+    protected SelectionKey register(final AbstractSelectableChannel ch,
+                                    final int ops,
+                                    final Object att) {
         return null;
     }
 

@@ -8,7 +8,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AbstractSelector;
 import java.nio.channels.spi.SelectorProvider;
 
-public class TestSelectorProvider extends SelectorProvider {
+public final class TestSelectorProvider extends SelectorProvider {
 
     private final ServerSocketChannel serverSocketChannel;
 

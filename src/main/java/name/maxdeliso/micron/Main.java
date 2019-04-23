@@ -36,7 +36,6 @@ final class Main {
                         new InetSocketAddress(SERVER_PORT),
                         BUFFER_SIZE,
                         SELECT_TIMEOUT_SECONDS,
-                        MAX_MESSAGES,
                         NO_NEW_DATA_MESSAGE,
                         peerRegistry,
                         new InMemoryMessageStore(MAX_MESSAGES, peerRegistry),
