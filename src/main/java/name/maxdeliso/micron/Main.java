@@ -36,7 +36,7 @@ final class Main {
                         new InetSocketAddress(SERVER_PORT),
                         BUFFER_SIZE,
                         SELECT_TIMEOUT_SECONDS,
-                        NO_NEW_DATA_MESSAGE,
+                        NO_NEW_DATA_MESSAGE.getBytes(),
                         peerRegistry,
                         new InMemoryMessageStore(MAX_MESSAGES, peerRegistry),
                         SelectorProvider.provider());

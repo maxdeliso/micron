@@ -46,7 +46,7 @@ public class SingleThreadedEventLooperTest {
                 socketAddress,
                 TEST_BUFFER_SIZE,
                 TEST_SELECT_TIMEOUT_SECONDS,
-                TEST_NO_NEW_DATA_MESSAGE,
+                TEST_NO_NEW_DATA_MESSAGE.getBytes(),
                 peerRegistry,
                 messageStore,
                 selectorProvider);

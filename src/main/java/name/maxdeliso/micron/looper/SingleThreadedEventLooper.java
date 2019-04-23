@@ -25,7 +25,7 @@ public final class SingleThreadedEventLooper implements
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooper.class);
 
-    private final String noNewDataMessage;
+    private final byte[] noNewDataMessageBytes;
 
     private final long selectTimeoutSeconds;
 
@@ -44,14 +44,14 @@ public final class SingleThreadedEventLooper implements
     public SingleThreadedEventLooper(final SocketAddress socketAddress,
                                      final int bufferSize,
                                      final int selectTimeoutSeconds,
-                                     final String noNewDataMessage,
+                                     final byte[] noNewDataMessageBytes,
                                      final PeerRegistry peerRegistry,
                                      final MessageStore messageStore,
                                      final SelectorProvider selectorProvider) {
         this.socketAddress = socketAddress;
         this.incomingBuffer = ByteBuffer.allocateDirect(bufferSize);
         this.selectTimeoutSeconds = selectTimeoutSeconds;
-        this.noNewDataMessage = noNewDataMessage;
+        this.noNewDataMessageBytes = noNewDataMessageBytes;
         this.peerRegistry = peerRegistry;
         this.messageStore = messageStore;
         this.selectorProvider = selectorProvider;
@@ -150,7 +150,7 @@ public final class SingleThreadedEventLooper implements
     private void handleWritablePeer(final Peer peer) {
         try {
             final var bytesToWriteOpt = messageStore.get(peer.getPosition()).map(String::getBytes);
-            final var bufferToWrite = ByteBuffer.wrap(bytesToWriteOpt.orElse(noNewDataMessage.getBytes()));
+            final var bufferToWrite = ByteBuffer.wrap(bytesToWriteOpt.orElse(noNewDataMessageBytes));
             final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
 
             bytesToWriteOpt.ifPresent(_bytes -> peer.advancePosition());
