@@ -46,9 +46,9 @@ public final class InMemoryMessageStore implements MessageStore {
 
   @Override
   public Optional<String> get(final long messageIndex) {
-    final Long messageIndexBoxed = messageIndex;
-
     synchronized (this.messages) {
+      final Long messageIndexBoxed = messageIndex;
+
       if (messageIndex < messages.size()) {
         final String message;
 

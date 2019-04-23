@@ -29,11 +29,11 @@ final class Main {
   private static final String NO_NEW_DATA_MESSAGE = "\b";
 
   public static void main(final String[] args) {
-    final PeerRegistry peerRegistry = new InMemoryPeerRegistry();
+    final var peerRegistry = new InMemoryPeerRegistry();
 
-    final ByteBuffer incomingBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
+    final var incomingBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
-    final EventLooper looper =
+    final var looper =
         SingleThreadedEventLooper.builder()
             .incomingBuffer(incomingBuffer)
             .messageCharset(StandardCharsets.UTF_8)
