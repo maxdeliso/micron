@@ -3,11 +3,9 @@ package name.maxdeliso.micron;
 import static java.lang.Runtime.getRuntime;
 
 import lombok.extern.slf4j.Slf4j;
-import name.maxdeliso.micron.looper.EventLooper;
 import name.maxdeliso.micron.looper.SingleThreadedEventLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
-import name.maxdeliso.micron.peer.PeerRegistry;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -31,13 +29,15 @@ final class Main {
   public static void main(final String[] args) {
     final var peerRegistry = new InMemoryPeerRegistry();
 
+    final var messageStore = new InMemoryMessageStore(MAX_MESSAGES, peerRegistry);
+
     final var incomingBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     final var looper =
         SingleThreadedEventLooper.builder()
             .incomingBuffer(incomingBuffer)
             .messageCharset(StandardCharsets.UTF_8)
-            .messageStore(new InMemoryMessageStore(MAX_MESSAGES, peerRegistry))
+            .messageStore(messageStore)
             .noNewDataMessage(NO_NEW_DATA_MESSAGE)
             .peerRegistry(peerRegistry)
             .selectorProvider(SelectorProvider.provider())
