@@ -11,6 +11,7 @@ import java.util.Optional;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 @RunWith(MockitoJUnitRunner.class)
 public class InMemoryMessageStoreTest {
@@ -37,5 +38,12 @@ public class InMemoryMessageStoreTest {
 
     assertTrue(messageOpt.isPresent());
     assertEquals(messageOpt.get(), TEST_MESSAGE);
+  }
+
+  @Test
+  public void testEmptyGet() {
+    final Optional<String> messageOpt = messageStore.get(0);
+
+    assertFalse(messageOpt.isPresent());
   }
 }
