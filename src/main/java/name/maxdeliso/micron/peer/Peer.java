@@ -20,7 +20,7 @@ public final class Peer {
    * Construct a peer, which identifies a connected user.
    *
    * @param index         the numeric index of the peer.
-   * @param socketChannel a socket channel with which to communicate with them.
+   * @param socketChannel a selectable channel with which to communicate with them.
    */
   public Peer(final long index, final SocketChannel socketChannel) {
     this.index = index;

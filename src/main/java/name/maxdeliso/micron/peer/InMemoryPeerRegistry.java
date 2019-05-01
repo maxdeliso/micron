@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.jcip.annotations.ThreadSafe;
 
 import java.io.IOException;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,9 +31,9 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
   }
 
   @Override
-  public Peer allocatePeer(final SocketChannel clientChannel) {
+  public Peer allocatePeer(final SocketChannel socketChannel) {
     final var newPeerNumber = peerCounter.get();
-    final var newPeer = new Peer(newPeerNumber, clientChannel);
+    final var newPeer = new Peer(newPeerNumber, socketChannel);
 
     peerMap.put(newPeerNumber, newPeer);
     peerCounter.incrementAndGet();

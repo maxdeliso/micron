@@ -1,5 +1,6 @@
 package name.maxdeliso.micron.peer;
 
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
 
