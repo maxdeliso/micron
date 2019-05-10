@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Optional;
@@ -56,11 +55,31 @@ public class InMemoryPeerRegistryTest {
   }
 
   @Test
-  public void testSinglePeerAllocationAndEviction() throws IOException {
+  public void testSinglePeerAllocationAndEviction() {
     final Peer peer = peerRegistry.allocatePeer(socketChannel);
 
     peerRegistry.evictPeer(peer);
 
     assertFalse(peerRegistry.get(0L).isPresent());
+  }
+
+  @Test
+  public void testMinPeerPositionIsReturned() {
+    final var firstPeer = peerRegistry.allocatePeer(socketChannel);
+    final var secondPeer = peerRegistry.allocatePeer(socketChannel);
+
+    firstPeer.advancePosition();
+    secondPeer.advancePosition();
+
+    final Optional<Peer> firstPeerOpt = peerRegistry.get(0L);
+    final Optional<Peer> secondPeerOpt = peerRegistry.get(1L);
+    final Optional<Integer> minPositionOpt = peerRegistry.minPosition();
+
+    assertTrue(firstPeerOpt.isPresent());
+    assertEquals(firstPeerOpt.get(), firstPeer);
+    assertTrue(secondPeerOpt.isPresent());
+    assertEquals(secondPeerOpt.get(), secondPeer);
+    assertTrue(minPositionOpt.isPresent());
+    assertEquals(1L, (long) minPositionOpt.get());
   }
 }

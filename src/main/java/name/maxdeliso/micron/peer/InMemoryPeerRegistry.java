@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.jcip.annotations.ThreadSafe;
 
 import java.io.IOException;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,6 +54,12 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
     peerMap.values().parallelStream().forEach(Peer::resetPosition);
   }
 
+  /**
+   *
+   * Evicts a peer from the peer map using its id.
+   *
+   * @param peer peer to be evicted.
+   */
   @Override
   public void evictPeer(final Peer peer) {
     try {
