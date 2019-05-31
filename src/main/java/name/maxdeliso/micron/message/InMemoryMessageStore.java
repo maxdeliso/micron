@@ -2,9 +2,7 @@ package name.maxdeliso.micron.message;
 
 
 import lombok.RequiredArgsConstructor;
-
 import name.maxdeliso.micron.peer.PeerRegistry;
-
 import net.jcip.annotations.ThreadSafe;
 
 import java.util.ArrayList;
@@ -34,13 +32,20 @@ public final class InMemoryMessageStore implements MessageStore {
   }
 
   @Override
-  public void add(final String received) {
+  public boolean add(final String received) {
     synchronized (this.messages) {
-      if (messages.size() >= maxMessages) {
+      if (messages.size() == maxMessages) {
         rotateBuffer();
       }
 
-      messages.add(received);
+      if (messages.size() == maxMessages) {
+        // after rotation, still no space, so return false for failed add
+        return false;
+      } else {
+        messages.add(received);
+        // add succeeded, so return true
+        return true;
+      }
     }
   }
 
@@ -60,13 +65,12 @@ public final class InMemoryMessageStore implements MessageStore {
   }
 
   private void rotateBuffer() {
-    synchronized (this.messages) {
-      final var minimumRightExtent = peerRegistry.minPosition().orElse(maxMessages);
-      final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, maxMessages));
+    final var minimumRightExtent =
+        Math.min(peerRegistry.minPosition().orElse(maxMessages), maxMessages);
+    final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, maxMessages));
 
-      messages.clear();
-      messages.addAll(leftOver);
-      peerRegistry.resetPositions();
-    }
+    messages.clear();
+    messages.addAll(leftOver);
+    peerRegistry.resetPositions();
   }
 }

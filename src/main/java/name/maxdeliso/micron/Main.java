@@ -18,13 +18,21 @@ final class Main {
 
   private static final int SERVER_PORT = 1337;
 
+  /**
+   * Maximum size of a single read operation.
+   * Messages larger than this size will be truncated.
+   */
   private static final int BUFFER_SIZE = 512;
 
-  private static final int MAX_MESSAGES = 8192;
+  /**
+   * Maximum number of messages to hold in memory.
+   * When the threshold is hit, the minimum position
+   * of all currently connected peers is used to determine
+   * the subsection of messages that it's safe to discard.
+   */
+  private static final int MAX_MESSAGES = 128;
 
-  private static final int SELECT_TIMEOUT_SECONDS = 1;
-
-  private static final String NO_NEW_DATA_MESSAGE = "\b";
+  private static final String NO_NEW_DATA_MESSAGE = "\0";
 
   public static void main(final String[] args) {
     final var peerRegistry = new InMemoryPeerRegistry();
@@ -41,7 +49,6 @@ final class Main {
             .noNewDataMessage(NO_NEW_DATA_MESSAGE)
             .peerRegistry(peerRegistry)
             .selectorProvider(SelectorProvider.provider())
-            .selectTimeoutSeconds(SELECT_TIMEOUT_SECONDS)
             .socketAddress(new InetSocketAddress(SERVER_PORT))
             .build();
 

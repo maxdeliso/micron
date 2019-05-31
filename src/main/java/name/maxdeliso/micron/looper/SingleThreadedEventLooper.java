@@ -63,7 +63,7 @@ public final class SingleThreadedEventLooper implements
       socketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
       while (serverSocketChannel.isOpen()) {
-        selector.select(SECONDS.toMillis(this.selectTimeoutSeconds));
+        selector.select(PER_PEER_WRITE_TIMEOUT_MS);
 
         for (final var selectedKey : selector.selectedKeys()) {
           if (!selectedKey.isValid()) {
@@ -85,7 +85,12 @@ public final class SingleThreadedEventLooper implements
 
           if (selectedKey.isValid() && selectedKey.isReadable()) {
             handleReadableKey(selectedKey, peerRegistry,
-                peer -> handleReadablePeer(peer).ifPresent(messageStore::add));
+                peer -> handleReadablePeer(peer)
+                    .ifPresent(message -> {
+                      if (!messageStore.add(message)) {
+                        log.warn("discarded message due to overflow");
+                      }
+                    }));
           }
         }
       }
