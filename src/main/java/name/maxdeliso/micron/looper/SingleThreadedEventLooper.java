@@ -18,6 +18,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 @Slf4j
@@ -43,9 +44,11 @@ public final class SingleThreadedEventLooper implements
 
   private final ByteBuffer incomingBuffer;
 
-  ServerSocketChannel serverSocketChannel;
+  private ServerSocketChannel serverSocketChannel;
 
   private final CountDownLatch latch = new CountDownLatch(1);
+
+  private static final int PER_PEER_WRITE_TIMEOUT_MS = 10;
 
   @Override
   public void loop() throws IOException {
@@ -74,7 +77,9 @@ public final class SingleThreadedEventLooper implements
                 (channel, key) -> associatePeer(channel, key, peerRegistry));
           }
 
-          if (selectedKey.isValid() && selectedKey.isWritable()) {
+          if (selectedKey.isValid()
+              && selectedKey.isWritable()
+              && ((selectedKey.interestOps() & SelectionKey.OP_WRITE) != 0)) {
             handleWritableKey(selectedKey, peerRegistry, this::handleWritablePeer);
           }
 
@@ -136,7 +141,8 @@ public final class SingleThreadedEventLooper implements
     return Optional.ofNullable(incoming);
   }
 
-  private void handleWritablePeer(final Peer peer) {
+  private void handleWritablePeer(final SelectionKey selectionKey,
+                                  final Peer peer) {
     try {
       final var bytesToWriteOpt = messageStore
           .get(peer.getPosition()).map(String::getBytes);
@@ -148,6 +154,22 @@ public final class SingleThreadedEventLooper implements
       bytesToWriteOpt.ifPresent(bytes -> peer.advancePosition());
 
       log.trace("wrote {} bytes to peer {}", bytesWritten, peer);
+
+      final var interestBefore = selectionKey.interestOpsAnd(~SelectionKey.OP_WRITE);
+
+      if ((interestBefore & SelectionKey.OP_WRITE) != 0) {
+        log.info("disabled write interest due to write for peer {}", peer);
+
+        CompletableFuture.runAsync(() -> {
+          try {
+            Thread.sleep(PER_PEER_WRITE_TIMEOUT_MS);
+            selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
+            log.info("re-enabled write interest via async task for peer {}", peer);
+          } catch (final InterruptedException ie) {
+            log.error("interrupted while waiting to re-enable write interest");
+          }
+        });
+      }
     } catch (final IOException ioe) {
       peerRegistry.evictPeer(peer);
 

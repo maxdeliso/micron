@@ -8,6 +8,7 @@ import name.maxdeliso.micron.peer.PeerRegistry;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public interface PeerCountingReadWriteSelector {
@@ -21,20 +22,24 @@ public interface PeerCountingReadWriteSelector {
   default Optional<Peer> lookupPeer(
       final SelectionKey selectionKey,
       final PeerRegistry peerRegistry) {
-    return ofNullable(selectionKey).map(key -> (Long) key.attachment()).flatMap(peerRegistry::get);
+    return ofNullable(selectionKey)
+        .map(key -> (Long) key.attachment())
+        .flatMap(peerRegistry::get);
   }
 
   default void handleReadableKey(
       final SelectionKey readSelectedKey,
       final PeerRegistry peerRegistry,
       final Consumer<Peer> peerConsumer) {
-    lookupPeer(readSelectedKey, peerRegistry).ifPresent(peerConsumer);
+    lookupPeer(readSelectedKey, peerRegistry)
+        .ifPresent(peerConsumer);
   }
 
   default void handleWritableKey(
       final SelectionKey writeSelectedKey,
       final PeerRegistry peerRegistry,
-      final Consumer<Peer> peerConsumer) {
-    lookupPeer(writeSelectedKey, peerRegistry).ifPresent(peerConsumer);
+      final BiConsumer<SelectionKey, Peer> peerConsumer) {
+    lookupPeer(writeSelectedKey, peerRegistry)
+        .ifPresent(peer -> peerConsumer.accept(writeSelectedKey, peer));
   }
 }
