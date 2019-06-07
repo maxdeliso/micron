@@ -1,7 +1,5 @@
 package name.maxdeliso.micron.looper;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.MessageStore;
@@ -14,6 +12,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
@@ -46,9 +45,11 @@ public final class SingleThreadedEventLooper implements
 
   private ServerSocketChannel serverSocketChannel;
 
+  private Selector selector;
+
   private final CountDownLatch latch = new CountDownLatch(1);
 
-  private static final int PER_PEER_WRITE_TIMEOUT_MS = 10;
+  private static final int PER_PEER_WRITE_TIMEOUT_MS = 1;
 
   @Override
   public void loop() throws IOException {
@@ -58,12 +59,13 @@ public final class SingleThreadedEventLooper implements
          final var socketChannel = serverSocketChannel.bind(socketAddress);
          final var selector = selectorProvider.openSelector()) {
 
+      this.selector = selector;
       this.serverSocketChannel = serverSocketChannel;
       serverSocketChannel.configureBlocking(false);
       socketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
       while (serverSocketChannel.isOpen()) {
-        selector.select(PER_PEER_WRITE_TIMEOUT_MS);
+        selector.select();
 
         for (final var selectedKey : selector.selectedKeys()) {
           if (!selectedKey.isValid()) {
@@ -167,11 +169,17 @@ public final class SingleThreadedEventLooper implements
 
         CompletableFuture.runAsync(() -> {
           try {
+            log.info("waiting to re-enable write interest");
+
             Thread.sleep(PER_PEER_WRITE_TIMEOUT_MS);
             selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
-            log.info("re-enabled write interest via async task for peer {}", peer);
+
+            log.info("re-enabled write interest via async task for peer {}, waking up selector",
+                peer);
+
+            selector.wakeup();
           } catch (final InterruptedException ie) {
-            log.error("interrupted while waiting to re-enable write interest");
+            log.error("interrupted while waiting to re-enable write interest", ie);
           }
         });
       }
