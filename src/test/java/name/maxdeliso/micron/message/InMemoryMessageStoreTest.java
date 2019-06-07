@@ -50,8 +50,10 @@ public class InMemoryMessageStoreTest {
 
   @Test
   public void testSingleProducerOverflowRotation() {
+    // min position is after all messages -> min reader is caught up at the end of the buffer
     when(peerRegistry.minPosition()).thenReturn(Optional.of(TEST_MESSAGE_COUNT));
 
+    // fill buffer with strings of the form 0, 1, 2 ..., one past its capacity
     for (int i = 0; i < TEST_MESSAGE_COUNT + 1; i++) {
       messageStore.add(String.valueOf(i));
     }
@@ -59,5 +61,29 @@ public class InMemoryMessageStoreTest {
     assertTrue(messageStore.get(0).isPresent());
     assertEquals(messageStore.get(0).get(), String.valueOf(TEST_MESSAGE_COUNT));
     assertFalse(messageStore.get(1).isPresent());
+  }
+
+  @Test
+  public void testMultipleProducerOverflow() {
+    // min position is zero -> min reader is at beginning of buffer
+    when(peerRegistry.minPosition()).thenReturn(Optional.of(0));
+
+    // fill buffer with n strings of the form 0, 1, 2 ... (n - 1)
+    for (int i = 0; i < TEST_MESSAGE_COUNT; i++) {
+      final boolean added = messageStore.add(String.valueOf(i));
+      assertTrue(added);
+    }
+
+    // attempt to insert n + 1th message, observe failure
+    assertFalse(messageStore.add("next"));
+
+    // check first message is present and equal to "0"
+    assertTrue(messageStore.get(0).isPresent());
+    assertEquals(messageStore.get(0).get(), "0");
+
+    // check last message is present and equal to (n - 1) as a string
+    assertTrue(messageStore.get(TEST_MESSAGE_COUNT - 1).isPresent());
+    assertEquals(messageStore.get(TEST_MESSAGE_COUNT - 1).get(),
+        String.valueOf(TEST_MESSAGE_COUNT - 1));
   }
 }
