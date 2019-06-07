@@ -12,6 +12,7 @@ import java.util.Optional;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class InMemoryMessageStoreTest {
@@ -45,5 +46,18 @@ public class InMemoryMessageStoreTest {
     final Optional<String> messageOpt = messageStore.get(0);
 
     assertFalse(messageOpt.isPresent());
+  }
+
+  @Test
+  public void testSingleProducerOverflowRotation() {
+    when(peerRegistry.minPosition()).thenReturn(Optional.of(TEST_MESSAGE_COUNT));
+
+    for (int i = 0; i < TEST_MESSAGE_COUNT + 1; i++) {
+      messageStore.add(String.valueOf(i));
+    }
+
+    assertTrue(messageStore.get(0).isPresent());
+    assertEquals(messageStore.get(0).get(), String.valueOf(TEST_MESSAGE_COUNT));
+    assertFalse(messageStore.get(1).isPresent());
   }
 }
