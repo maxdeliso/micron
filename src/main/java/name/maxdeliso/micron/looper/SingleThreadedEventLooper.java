@@ -109,6 +109,10 @@ public final class SingleThreadedEventLooper implements
       this.serverSocketChannel.close();
     }
 
+    if (this.selector != null) {
+      selector.wakeup();
+    }
+
     latch.await();
   }
 
