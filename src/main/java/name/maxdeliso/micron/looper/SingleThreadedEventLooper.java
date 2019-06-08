@@ -27,29 +27,18 @@ public final class SingleThreadedEventLooper implements
     PeerCountingReadWriteSelector,
     NonBlockingAcceptorSelector {
 
-  private final SocketAddress socketAddress;
-
-  private final long selectTimeoutSeconds;
-
-  private final String noNewDataMessage;
-
-  private final Charset messageCharset;
-
-  private final PeerRegistry peerRegistry;
-
-  private final MessageStore messageStore;
-
-  private final SelectorProvider selectorProvider;
-
-  private final ByteBuffer incomingBuffer;
-
-  private ServerSocketChannel serverSocketChannel;
-
-  private Selector selector;
-
-  private final CountDownLatch latch = new CountDownLatch(1);
-
   private static final int PER_PEER_WRITE_TIMEOUT_MS = 1;
+  private final SocketAddress socketAddress;
+  private final long selectTimeoutSeconds;
+  private final String noNewDataMessage;
+  private final Charset messageCharset;
+  private final PeerRegistry peerRegistry;
+  private final MessageStore messageStore;
+  private final SelectorProvider selectorProvider;
+  private final ByteBuffer incomingBuffer;
+  private final CountDownLatch latch = new CountDownLatch(1);
+  private ServerSocketChannel serverSocketChannel;
+  private Selector selector;
 
   @Override
   public void loop() throws IOException {
@@ -155,12 +144,14 @@ public final class SingleThreadedEventLooper implements
   private void handleWritablePeer(final SelectionKey selectionKey,
                                   final Peer peer) {
     try {
-      final var bytesToWriteOpt = messageStore
-          .get(peer.getPosition()).map(String::getBytes);
-      final var bufferToWrite = ByteBuffer
-          .wrap(bytesToWriteOpt.orElse(noNewDataMessage.getBytes(messageCharset)));
-      final var bytesWritten = peer
-          .getSocketChannel().write(bufferToWrite);
+      final var bytesToWriteOpt = messageStore.get(peer.getPosition()).map(String::getBytes);
+
+      if (bytesToWriteOpt.isEmpty()) {
+        return;
+      }
+
+      final var bufferToWrite = ByteBuffer.wrap(bytesToWriteOpt.get());
+      final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
 
       bytesToWriteOpt.ifPresent(bytes -> peer.advancePosition());
 
@@ -172,25 +163,23 @@ public final class SingleThreadedEventLooper implements
         log.info("disabled write interest due to write for peer {}", peer);
 
         CompletableFuture.runAsync(() -> {
-          try {
-            log.info("waiting to re-enable write interest");
-
-            Thread.sleep(PER_PEER_WRITE_TIMEOUT_MS);
-            selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
-
-            log.info("re-enabled write interest via async task for peer {}, waking up selector",
-                peer);
-
-            selector.wakeup();
-          } catch (final InterruptedException ie) {
-            log.error("interrupted while waiting to re-enable write interest", ie);
-          }
+          reenableWriteSelection(selectionKey);
         });
       }
     } catch (final IOException ioe) {
       peerRegistry.evictPeer(peer);
 
       log.warn("failed to write to peer {}", peer, ioe);
+    }
+  }
+
+  private void reenableWriteSelection(final SelectionKey selectionKey) {
+    try {
+      Thread.sleep(PER_PEER_WRITE_TIMEOUT_MS);
+      selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
+      selector.wakeup();
+    } catch (final InterruptedException ie) {
+      log.error("interrupted while waiting to re-enable write interest", ie);
     }
   }
 }

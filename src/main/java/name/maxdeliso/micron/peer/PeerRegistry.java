@@ -10,6 +10,8 @@ public interface PeerRegistry {
 
   Optional<Integer> minPosition();
 
+  Optional<Integer> maxPosition();
+
   void resetPositions();
 
   void evictPeer(Peer peer);

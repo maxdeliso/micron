@@ -10,42 +10,42 @@ import java.nio.channels.spi.SelectorProvider;
 
 public final class TestSelectorProvider extends SelectorProvider {
 
-  private final ServerSocketChannel serverSocketChannel;
+    private final ServerSocketChannel serverSocketChannel;
 
-  private final AbstractSelector selector;
+    private final AbstractSelector selector;
 
-  public TestSelectorProvider() {
-    this.serverSocketChannel = new TestServerSocketChannel(this);
-    this.selector = new TestSelector(this);
-  }
+    public TestSelectorProvider() {
+        this.serverSocketChannel = new TestServerSocketChannel(this);
+        this.selector = new TestSelector(this);
+    }
 
-  @Override
-  public DatagramChannel openDatagramChannel() {
-    return null;
-  }
+    @Override
+    public DatagramChannel openDatagramChannel() {
+        return null;
+    }
 
-  @Override
-  public DatagramChannel openDatagramChannel(ProtocolFamily family) {
-    return null;
-  }
+    @Override
+    public DatagramChannel openDatagramChannel(ProtocolFamily family) {
+        return null;
+    }
 
-  @Override
-  public Pipe openPipe() {
-    return null;
-  }
+    @Override
+    public Pipe openPipe() {
+        return null;
+    }
 
-  @Override
-  public AbstractSelector openSelector() {
-    return selector;
-  }
+    @Override
+    public AbstractSelector openSelector() {
+        return selector;
+    }
 
-  @Override
-  public ServerSocketChannel openServerSocketChannel() {
-    return serverSocketChannel;
-  }
+    @Override
+    public ServerSocketChannel openServerSocketChannel() {
+        return serverSocketChannel;
+    }
 
-  @Override
-  public SocketChannel openSocketChannel() {
-    return null;
-  }
+    @Override
+    public SocketChannel openSocketChannel() {
+        return null;
+    }
 }

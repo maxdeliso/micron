@@ -50,12 +50,23 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
   }
 
   @Override
+  public Optional<Integer> maxPosition() {
+    return peerMap
+        .values()
+        .parallelStream()
+        .map(Peer::getPosition)
+        .map(Math::toIntExact)
+        .max(Integer::compare);
+  }
+
+  @Override
   public void resetPositions() {
-    peerMap.values().parallelStream().forEach(Peer::resetPosition);
+    peerMap.values()
+        .parallelStream()
+        .forEach(Peer::resetPosition);
   }
 
   /**
-   *
    * Evicts a peer from the peer map using its id.
    *
    * @param peer peer to be evicted.

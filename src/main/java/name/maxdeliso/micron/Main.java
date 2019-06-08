@@ -1,7 +1,5 @@
 package name.maxdeliso.micron;
 
-import static java.lang.Runtime.getRuntime;
-
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.SingleThreadedEventLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
@@ -12,6 +10,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.StandardCharsets;
+
+import static java.lang.Runtime.getRuntime;
 
 @Slf4j
 final class Main {
@@ -30,7 +30,7 @@ final class Main {
    * of all currently connected peers is used to determine
    * the subsection of messages that it's safe to discard.
    */
-  private static final int MAX_MESSAGES = 128;
+  private static final int MAX_MESSAGES = 8192;
 
   private static final String NO_NEW_DATA_MESSAGE = "\0";
 

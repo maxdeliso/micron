@@ -1,7 +1,5 @@
 package name.maxdeliso.micron.selector;
 
-import static java.util.Optional.ofNullable;
-
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 
@@ -10,6 +8,8 @@ import java.nio.channels.SocketChannel;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import static java.util.Optional.ofNullable;
 
 public interface PeerCountingReadWriteSelector {
   default void associatePeer(final SocketChannel socketChannel,
