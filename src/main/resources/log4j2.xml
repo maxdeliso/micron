@@ -2,12 +2,12 @@
 <Configuration status="DEBUG" strict="true">
     <Appenders>
         <Appender type="Console" name="STDOUT">
-            <Layout type="PatternLayout" pattern="%-5p [%t]: %m%n"/>
+            <Layout type="PatternLayout" pattern="%-5p [%t][%d{UNIX_MILLIS}]: %m%n"/>
         </Appender>
     </Appenders>
 
     <Loggers>
-        <Root level="INFO">
+        <Root level="TRACE">
             <AppenderRef ref="STDOUT"/>
         </Root>
     </Loggers>
