@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @ThreadSafe
 @Value
-public final class Peer {
+public final class Peer implements PositionTracker {
 
   private final long index;
 
@@ -28,14 +28,22 @@ public final class Peer {
     this.socketChannel = socketChannel;
   }
 
-  public void advancePosition() {
-    this.position.incrementAndGet();
+  @Override
+  public long advancePosition() {
+    return this.position.incrementAndGet();
   }
 
+  @Override
+  public long advancePosition(final long delta) {
+    return this.position.addAndGet(delta);
+  }
+
+  @Override
   public void resetPosition() {
     this.position.set(0);
   }
 
+  @Override
   public long getPosition() {
     return this.position.get();
   }

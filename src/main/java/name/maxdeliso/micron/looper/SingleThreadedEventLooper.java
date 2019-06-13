@@ -8,6 +8,7 @@ import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
 import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -20,6 +21,8 @@ import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 @Slf4j
 @Builder
@@ -140,25 +143,32 @@ public final class SingleThreadedEventLooper implements
       incoming = new String(incomingBytes, messageCharset);
     }
 
-    toggleAndReenableAsync(key, SelectionKey.OP_READ);
+    toggleMaskAsync(key, SelectionKey.OP_READ);
 
     return Optional.ofNullable(incoming);
   }
 
-  private void handleWritablePeer(final SelectionKey key,
-                                  final Peer peer) {
+  private void handleWritablePeer(final SelectionKey key, final Peer peer) {
     try {
-      final var bytesToWriteOpt = messageStore.get(peer.getPosition()).map(String::getBytes);
 
-      if (bytesToWriteOpt.isPresent()) {
-        final var bufferToWrite = ByteBuffer.wrap(bytesToWriteOpt.get());
+      final Stream<String> messageStream = messageStore.getFrom(peer.getPosition());
+      final AtomicLong messageCount = new AtomicLong(0);
+      final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+      messageStream.map(String::getBytes).forEach(bytes -> {
+        messageCount.incrementAndGet();
+        byteArrayOutputStream.writeBytes(bytes);
+      });
+
+      if (messageCount.get() > 0) {
+        final var bufferToWrite = ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
         final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
-        peer.advancePosition();
+        final var newPosition = peer.advancePosition(messageCount.get());
 
-        log.trace("wrote {} bytes to peer {}", bytesWritten, peer);
+        log.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);
       }
 
-      toggleAndReenableAsync(key, SelectionKey.OP_WRITE);
+      toggleMaskAsync(key, SelectionKey.OP_WRITE);
     } catch (final IOException ioe) {
       peerRegistry.evictPeer(peer);
 
@@ -166,10 +176,10 @@ public final class SingleThreadedEventLooper implements
     }
   }
 
-  private void toggleAndReenableAsync(final SelectionKey key, final int mask) {
+  private void toggleMaskAsync(final SelectionKey key, final int mask) {
     try {
       if ((key.interestOpsAnd(~mask) & mask) == mask) {
-        reEnableAsync(key, mask);
+        asyncEnable(key, mask);
       } else {
         log.trace("clearing interest ops had no effect on key {}", key);
       }
@@ -178,10 +188,8 @@ public final class SingleThreadedEventLooper implements
     }
   }
 
-
-  private void reEnableAsync(final SelectionKey key,
-                             final int mask) {
-    CompletableFuture.runAsync(() -> {
+  private CompletableFuture<Void> asyncEnable(final SelectionKey key, final int mask) {
+    return CompletableFuture.runAsync(() -> {
       try {
         Thread.sleep(SELECTION_KEY_TIMEOUT_MS);
         key.interestOpsOr(mask);
