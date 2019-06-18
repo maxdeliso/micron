@@ -22,6 +22,7 @@ import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -185,7 +186,7 @@ public final class SingleThreadedEventLooper implements
   private void handleWritablePeer(final SelectionKey key, final Peer peer) {
     try {
       final Stream<String> messageStream = messageStore.getFrom(peer.getPosition());
-      final AtomicLong messageCount = new AtomicLong(0);
+      final AtomicInteger messageCount = new AtomicInteger(0);
       final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
       messageStream

@@ -67,6 +67,7 @@ public class InMemoryMessageStoreTest {
     public void testMultipleProducerOverflow() {
         // min position is zero -> min reader is at beginning of buffer
         when(peerRegistry.minPosition()).thenReturn(Optional.of(0));
+        when(peerRegistry.maxPosition()).thenReturn(Optional.of(TEST_MESSAGE_COUNT)); // after last
 
         // fill buffer with n strings of the form 0, 1, 2 ... (n - 1)
         for (int i = 0; i < TEST_MESSAGE_COUNT; i++) {

@@ -4,7 +4,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Optional;
 
 public interface PeerRegistry {
-  Optional<Peer> get(Long index);
+  Optional<Peer> get(int index);
 
   Peer allocatePeer(SocketChannel clientChannel);
 

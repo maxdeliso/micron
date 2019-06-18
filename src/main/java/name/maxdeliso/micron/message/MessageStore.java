@@ -6,7 +6,7 @@ import java.util.stream.Stream;
 public interface MessageStore {
   boolean add(String received);
 
-  Optional<String> get(long messageIndex);
+  Optional<String> get(int messageIndex);
 
-  Stream<String> getFrom(long messageIndex);
+  Stream<String> getFrom(int messageIndex);
 }

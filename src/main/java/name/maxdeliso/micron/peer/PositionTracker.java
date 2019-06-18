@@ -1,11 +1,11 @@
 package name.maxdeliso.micron.peer;
 
 public interface PositionTracker {
-  long advancePosition();
+  int advancePosition();
 
-  long advancePosition(long delta);
+  int advancePosition(int delta);
 
   void resetPosition();
 
-  long getPosition();
+  int getPosition();
 }

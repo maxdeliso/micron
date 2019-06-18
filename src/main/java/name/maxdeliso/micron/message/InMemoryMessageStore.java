@@ -52,12 +52,12 @@ public final class InMemoryMessageStore implements MessageStore {
   }
 
   @Override
-  public Optional<String> get(final long messageIndex) {
+  public Optional<String> get(final int messageIndex) {
     synchronized (this.messages) {
       if (messageIndex < messages.size()) {
         final String message;
 
-        message = messages.get(Math.toIntExact(messageIndex));
+        message = messages.get(messageIndex);
 
         return Optional.of(message);
       } else {
@@ -67,10 +67,10 @@ public final class InMemoryMessageStore implements MessageStore {
   }
 
   @Override
-  public Stream<String> getFrom(final long messageIndex) {
+  public Stream<String> getFrom(final int messageIndex) {
     synchronized (this.messages) {
       final List<String> messageBuffer =
-          new LinkedList<>(messages.subList(Math.toIntExact(messageIndex), messages.size()));
+          new LinkedList<>(messages.subList(messageIndex, messages.size()));
 
       return messageBuffer.stream();
     }

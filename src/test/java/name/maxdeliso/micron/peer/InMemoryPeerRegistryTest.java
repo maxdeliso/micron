@@ -33,7 +33,7 @@ public class InMemoryPeerRegistryTest {
     public void testPeerRegistryAssociatesSinglePeer() {
         peerRegistry.allocatePeer(socketChannel);
 
-        final Optional<Peer> peerOpt = peerRegistry.get(0L);
+        final Optional<Peer> peerOpt = peerRegistry.get(0);
 
         assertTrue(peerOpt.isPresent());
         assertEquals(socketChannel, peerOpt.get().getSocketChannel());
@@ -43,7 +43,7 @@ public class InMemoryPeerRegistryTest {
     public void testSinglePeerPositionIsReturned() {
         peerRegistry.allocatePeer(socketChannel);
 
-        final Optional<Peer> peerOpt = peerRegistry.get(0L);
+        final Optional<Peer> peerOpt = peerRegistry.get(0);
         final Optional<Integer> minPositionOpt = peerRegistry.minPosition();
 
         assertTrue(peerOpt.isPresent());
@@ -58,7 +58,7 @@ public class InMemoryPeerRegistryTest {
 
         peerRegistry.evictPeer(peer);
 
-        assertFalse(peerRegistry.get(0L).isPresent());
+        assertFalse(peerRegistry.get(0).isPresent());
     }
 
     @Test
@@ -69,8 +69,8 @@ public class InMemoryPeerRegistryTest {
         firstPeer.advancePosition();
         secondPeer.advancePosition();
 
-        final Optional<Peer> firstPeerOpt = peerRegistry.get(0L);
-        final Optional<Peer> secondPeerOpt = peerRegistry.get(1L);
+        final Optional<Peer> firstPeerOpt = peerRegistry.get(0);
+        final Optional<Peer> secondPeerOpt = peerRegistry.get(1);
         final Optional<Integer> minPositionOpt = peerRegistry.minPosition();
 
         assertTrue(firstPeerOpt.isPresent());

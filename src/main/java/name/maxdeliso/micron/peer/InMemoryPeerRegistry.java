@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
@@ -15,17 +16,17 @@ import java.util.concurrent.atomic.AtomicLong;
 @ThreadSafe
 public final class InMemoryPeerRegistry implements PeerRegistry {
 
-  private final AtomicLong peerCounter;
+  private final AtomicInteger peerCounter;
 
-  private final ConcurrentHashMap<Long, Peer> peerMap;
+  private final ConcurrentHashMap<Integer, Peer> peerMap;
 
   public InMemoryPeerRegistry() {
-    this.peerCounter = new AtomicLong();
+    this.peerCounter = new AtomicInteger();
     this.peerMap = new ConcurrentHashMap<>();
   }
 
   @Override
-  public Optional<Peer> get(final Long index) {
+  public Optional<Peer> get(final int index) {
     return Optional.ofNullable(peerMap.get(index));
   }
 
@@ -45,7 +46,6 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
         .values()
         .parallelStream()
         .map(Peer::getPosition)
-        .map(Math::toIntExact)
         .min(Integer::compare);
   }
 
@@ -55,7 +55,6 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
         .values()
         .parallelStream()
         .map(Peer::getPosition)
-        .map(Math::toIntExact)
         .max(Integer::compare);
   }
 

@@ -23,7 +23,7 @@ public interface PeerCountingReadWriteSelector {
       final SelectionKey selectionKey,
       final PeerRegistry peerRegistry) {
     return ofNullable(selectionKey)
-        .map(key -> (Long) key.attachment())
+        .map(key -> (Integer) key.attachment())
         .flatMap(peerRegistry::get);
   }
 
