@@ -2,14 +2,14 @@ package name.maxdeliso.micron.message;
 
 
 import lombok.RequiredArgsConstructor;
-
 import name.maxdeliso.micron.peer.PeerRegistry;
-
 import net.jcip.annotations.ThreadSafe;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 @ThreadSafe
@@ -34,23 +34,30 @@ public final class InMemoryMessageStore implements MessageStore {
   }
 
   @Override
-  public void add(final String received) {
+  public boolean add(final String received) {
     synchronized (this.messages) {
-      if (messages.size() >= maxMessages) {
+      if (messages.size() == maxMessages) {
         rotateBuffer();
       }
 
-      messages.add(received);
+      if (messages.size() == maxMessages) {
+        // after rotation, still no space, so return false for failed add
+        return false;
+      } else {
+        messages.add(received);
+        // add succeeded, so return true
+        return true;
+      }
     }
   }
 
   @Override
-  public Optional<String> get(final long messageIndex) {
+  public Optional<String> get(final int messageIndex) {
     synchronized (this.messages) {
       if (messageIndex < messages.size()) {
         final String message;
 
-        message = messages.get(Math.toIntExact(messageIndex));
+        message = messages.get(messageIndex);
 
         return Optional.of(message);
       } else {
@@ -59,14 +66,27 @@ public final class InMemoryMessageStore implements MessageStore {
     }
   }
 
-  private void rotateBuffer() {
+  @Override
+  public Stream<String> getFrom(final int messageIndex) {
     synchronized (this.messages) {
-      final var minimumRightExtent = peerRegistry.minPosition().orElse(maxMessages);
-      final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, maxMessages));
+      final List<String> messageBuffer =
+          new LinkedList<>(messages.subList(messageIndex, messages.size()));
 
-      messages.clear();
-      messages.addAll(leftOver);
-      peerRegistry.resetPositions();
+      return messageBuffer.stream();
     }
+  }
+
+  private void rotateBuffer() {
+    final var minimumRightExtent =
+        Math.min(peerRegistry.minPosition().orElse(maxMessages), maxMessages);
+
+    final var maximumRightExtent =
+        Math.max(peerRegistry.maxPosition().orElse(0), minimumRightExtent);
+
+    final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, maximumRightExtent));
+
+    messages.clear();
+    messages.addAll(leftOver);
+    peerRegistry.resetPositions();
   }
 }

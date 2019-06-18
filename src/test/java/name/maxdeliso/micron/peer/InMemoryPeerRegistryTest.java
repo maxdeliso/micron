@@ -11,75 +11,73 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class InMemoryPeerRegistryTest {
 
-  private SelectorProvider selectorProvider;
+    private SelectorProvider selectorProvider;
 
-  private SocketChannel socketChannel;
+    private SocketChannel socketChannel;
 
-  private PeerRegistry peerRegistry;
+    private PeerRegistry peerRegistry;
 
-  @Before
-  public void setup() {
-    selectorProvider = new TestSelectorProvider();
-    socketChannel = new TestSocketChannel(selectorProvider);
-    peerRegistry = new InMemoryPeerRegistry();
-  }
+    @Before
+    public void setup() {
+        selectorProvider = new TestSelectorProvider();
+        socketChannel = new TestSocketChannel(selectorProvider);
+        peerRegistry = new InMemoryPeerRegistry();
+    }
 
-  @Test
-  public void testPeerRegistryAssociatesSinglePeer() {
-    peerRegistry.allocatePeer(socketChannel);
+    @Test
+    public void testPeerRegistryAssociatesSinglePeer() {
+        peerRegistry.allocatePeer(socketChannel);
 
-    final Optional<Peer> peerOpt = peerRegistry.get(0L);
+        final Optional<Peer> peerOpt = peerRegistry.get(0);
 
-    assertTrue(peerOpt.isPresent());
-    assertEquals(socketChannel, peerOpt.get().getSocketChannel());
-  }
+        assertTrue(peerOpt.isPresent());
+        assertEquals(socketChannel, peerOpt.get().getSocketChannel());
+    }
 
-  @Test
-  public void testSinglePeerPositionIsReturned() {
-    peerRegistry.allocatePeer(socketChannel);
+    @Test
+    public void testSinglePeerPositionIsReturned() {
+        peerRegistry.allocatePeer(socketChannel);
 
-    final Optional<Peer> peerOpt = peerRegistry.get(0L);
-    final Optional<Integer> minPositionOpt = peerRegistry.minPosition();
+        final Optional<Peer> peerOpt = peerRegistry.get(0);
+        final Optional<Integer> minPositionOpt = peerRegistry.minPosition();
 
-    assertTrue(peerOpt.isPresent());
+        assertTrue(peerOpt.isPresent());
 
-    assertTrue(minPositionOpt.isPresent());
-    assertEquals(0L, (long) minPositionOpt.get());
-  }
+        assertTrue(minPositionOpt.isPresent());
+        assertEquals(0L, (long) minPositionOpt.get());
+    }
 
-  @Test
-  public void testSinglePeerAllocationAndEviction() {
-    final Peer peer = peerRegistry.allocatePeer(socketChannel);
+    @Test
+    public void testSinglePeerAllocationAndEviction() {
+        final Peer peer = peerRegistry.allocatePeer(socketChannel);
 
-    peerRegistry.evictPeer(peer);
+        peerRegistry.evictPeer(peer);
 
-    assertFalse(peerRegistry.get(0L).isPresent());
-  }
+        assertFalse(peerRegistry.get(0).isPresent());
+    }
 
-  @Test
-  public void testMinPeerPositionIsReturned() {
-    final var firstPeer = peerRegistry.allocatePeer(socketChannel);
-    final var secondPeer = peerRegistry.allocatePeer(socketChannel);
+    @Test
+    public void testMinPeerPositionIsReturned() {
+        final var firstPeer = peerRegistry.allocatePeer(socketChannel);
+        final var secondPeer = peerRegistry.allocatePeer(socketChannel);
 
-    firstPeer.advancePosition();
-    secondPeer.advancePosition();
+        firstPeer.advancePosition();
+        secondPeer.advancePosition();
 
-    final Optional<Peer> firstPeerOpt = peerRegistry.get(0L);
-    final Optional<Peer> secondPeerOpt = peerRegistry.get(1L);
-    final Optional<Integer> minPositionOpt = peerRegistry.minPosition();
+        final Optional<Peer> firstPeerOpt = peerRegistry.get(0);
+        final Optional<Peer> secondPeerOpt = peerRegistry.get(1);
+        final Optional<Integer> minPositionOpt = peerRegistry.minPosition();
 
-    assertTrue(firstPeerOpt.isPresent());
-    assertEquals(firstPeerOpt.get(), firstPeer);
-    assertTrue(secondPeerOpt.isPresent());
-    assertEquals(secondPeerOpt.get(), secondPeer);
-    assertTrue(minPositionOpt.isPresent());
-    assertEquals(1L, (long) minPositionOpt.get());
-  }
+        assertTrue(firstPeerOpt.isPresent());
+        assertEquals(firstPeerOpt.get(), firstPeer);
+        assertTrue(secondPeerOpt.isPresent());
+        assertEquals(secondPeerOpt.get(), secondPeer);
+        assertTrue(minPositionOpt.isPresent());
+        assertEquals(1L, (long) minPositionOpt.get());
+    }
 }

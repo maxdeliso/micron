@@ -1,7 +1,5 @@
 package name.maxdeliso.micron;
 
-import static java.lang.Runtime.getRuntime;
-
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.SingleThreadedEventLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
@@ -18,13 +16,25 @@ final class Main {
 
   private static final int SERVER_PORT = 1337;
 
+  /**
+   * Maximum size of a single read operation.
+   * Messages larger than this size will be truncated.
+   */
   private static final int BUFFER_SIZE = 512;
 
+  /**
+   * Maximum number of messages to hold in memory.
+   * When the threshold is hit, the minimum position
+   * of all currently connected peers is used to determine
+   * the subsection of messages that it's safe to discard.
+   */
   private static final int MAX_MESSAGES = 8192;
 
-  private static final int SELECT_TIMEOUT_SECONDS = 1;
-
-  private static final String NO_NEW_DATA_MESSAGE = "\b";
+  /**
+   * How long to wait in between subsequent batches of non-zero returning writes
+   * or reads to a given peer, in milliseconds.
+   */
+  private static final int ASYNC_ENABLE_TIMEOUT_MS = 100;
 
   public static void main(final String[] args) {
     final var peerRegistry = new InMemoryPeerRegistry();
@@ -34,24 +44,24 @@ final class Main {
     final var incomingBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     final var looper =
-        SingleThreadedEventLooper.builder()
+        SingleThreadedEventLooper
+            .builder()
             .incomingBuffer(incomingBuffer)
             .messageCharset(StandardCharsets.UTF_8)
             .messageStore(messageStore)
-            .noNewDataMessage(NO_NEW_DATA_MESSAGE)
             .peerRegistry(peerRegistry)
             .selectorProvider(SelectorProvider.provider())
-            .selectTimeoutSeconds(SELECT_TIMEOUT_SECONDS)
             .socketAddress(new InetSocketAddress(SERVER_PORT))
+            .asyncEnableTimeoutMs(ASYNC_ENABLE_TIMEOUT_MS)
             .build();
 
-    getRuntime().addShutdownHook(new Thread(() -> {
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       try {
         log.trace("sending halt to looper...");
 
         looper.halt();
-      } catch (final InterruptedException | IOException exc) {
-        log.warn("exception while halting looper", exc);
+      } catch (final InterruptedException ie) {
+        log.warn("exception while halting looper", ie);
       }
     }));
 

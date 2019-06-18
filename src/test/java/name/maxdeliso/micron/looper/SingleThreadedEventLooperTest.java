@@ -23,9 +23,7 @@ public class SingleThreadedEventLooperTest {
 
   private static final int TEST_BUFFER_SIZE = 1;
 
-  private static final int TEST_SELECT_TIMEOUT_SECONDS = 1;
-
-  private static final String TEST_NO_NEW_DATA_MESSAGE = "\b";
+  private static final int TEST_ASYNC_ENABLE_MS = 1;
 
   private SingleThreadedEventLooper singleThreadedEventLooper;
 
@@ -48,12 +46,11 @@ public class SingleThreadedEventLooperTest {
         .builder()
         .socketAddress(socketAddress)
         .incomingBuffer(ByteBuffer.allocateDirect(TEST_BUFFER_SIZE))
-        .selectTimeoutSeconds(TEST_SELECT_TIMEOUT_SECONDS)
-        .noNewDataMessage(TEST_NO_NEW_DATA_MESSAGE)
         .messageCharset(StandardCharsets.UTF_8)
         .peerRegistry(peerRegistry)
         .messageStore(messageStore)
         .selectorProvider(selectorProvider)
+        .asyncEnableTimeoutMs(TEST_ASYNC_ENABLE_MS)
         .build();
   }
 
@@ -71,8 +68,8 @@ public class SingleThreadedEventLooperTest {
     return new Thread(() -> {
       try {
         looper.halt();
-      } catch (final InterruptedException | IOException exc) {
-        LOGGER.warn("exception while halting", exc);
+      } catch (final InterruptedException ie) {
+        LOGGER.warn("exception while halting", ie);
       }
     });
   }
