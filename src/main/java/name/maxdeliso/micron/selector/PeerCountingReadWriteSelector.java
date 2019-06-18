@@ -9,8 +9,6 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import static java.util.Optional.ofNullable;
-
 public interface PeerCountingReadWriteSelector {
   default void associatePeer(final SocketChannel socketChannel,
                              final SelectionKey peerKey,
@@ -19,10 +17,17 @@ public interface PeerCountingReadWriteSelector {
     peerKey.attach(peer.getIndex());
   }
 
+  /**
+   * Look up peer in registry using a selection event.
+   *
+   * @param selectionKey a key corresponding to a selection.
+   * @param peerRegistry a registry to look up peer information.
+   * @return optionally, the peer corresponding to the selection.
+   */
   default Optional<Peer> lookupPeer(
       final SelectionKey selectionKey,
       final PeerRegistry peerRegistry) {
-    return ofNullable(selectionKey)
+    return Optional.ofNullable(selectionKey)
         .map(key -> (Integer) key.attachment())
         .flatMap(peerRegistry::get);
   }

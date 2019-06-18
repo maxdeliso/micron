@@ -11,8 +11,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.StandardCharsets;
 
-import static java.lang.Runtime.getRuntime;
-
 @Slf4j
 final class Main {
 
@@ -57,7 +55,7 @@ final class Main {
             .asyncEnableTimeoutMs(ASYNC_ENABLE_TIMEOUT_MS)
             .build();
 
-    getRuntime().addShutdownHook(new Thread(() -> {
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       try {
         log.trace("sending halt to looper...");
 

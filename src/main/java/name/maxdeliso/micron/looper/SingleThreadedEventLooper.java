@@ -110,9 +110,7 @@ public final class SingleThreadedEventLooper implements
           } catch (final IOException ioe) {
             log.trace("warn failed to close server socket channel during halt...", ioe);
           }
-        }, () -> {
-          log.warn("halting prior to server socket channel ref becoming available");
-        });
+        }, () -> log.warn("halting prior to server socket channel ref becoming available"));
 
     Optional
         .ofNullable(selectorRef.get())
@@ -129,7 +127,7 @@ public final class SingleThreadedEventLooper implements
 
     int readCalls = 0;
     int bytesReadTotal = 0;
-    boolean reachedEOF = false;
+    boolean endOfFile = false;
 
     try {
       final var socketChannel = peer.getSocketChannel();
@@ -143,7 +141,7 @@ public final class SingleThreadedEventLooper implements
           doneReading = true;
         } else if (bytesRead == -1) {
           doneReading = true;
-          reachedEOF = true;
+          endOfFile = true;
         } else {
           bytesReadTotal += bytesRead;
         }
@@ -154,7 +152,7 @@ public final class SingleThreadedEventLooper implements
       log.warn("failed to read from peer {}, so evicted", peer, ioe);
     }
 
-    if (reachedEOF) {
+    if (endOfFile) {
       peerRegistry.evictPeer(peer);
 
       log.warn("received end of stream from peer {}", peer);
