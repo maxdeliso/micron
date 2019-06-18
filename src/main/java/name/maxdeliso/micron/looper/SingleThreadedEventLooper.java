@@ -20,6 +20,7 @@ import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,6 +48,8 @@ public final class SingleThreadedEventLooper implements
       = new AtomicReference<>();
   private final AtomicReference<Selector> selectorRef
       = new AtomicReference<>();
+
+  private final Random random = new Random();
 
   @Override
   public void loop() throws IOException {
@@ -224,7 +227,7 @@ public final class SingleThreadedEventLooper implements
   private void asyncEnable(final SelectionKey key, final int mask) {
     CompletableFuture.runAsync(() -> {
       try {
-        Thread.sleep(asyncEnableTimeoutMs);
+        Thread.sleep((asyncEnableTimeoutMs + random.nextInt(asyncEnableTimeoutMs) / 2));
         key.interestOpsOr(mask);
         selectorRef.get().wakeup();
       } catch (final CancelledKeyException cke) {
