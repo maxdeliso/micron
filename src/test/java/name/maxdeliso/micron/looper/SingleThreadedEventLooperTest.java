@@ -19,80 +19,80 @@ import java.util.Arrays;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SingleThreadedEventLooperTest {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooperTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooperTest.class);
 
-    private static final int TEST_BUFFER_SIZE = 1;
+  private static final int TEST_BUFFER_SIZE = 1;
 
-    private static final int TEST_SELECT_TIMEOUT_SECONDS = 1;
+  private static final int TEST_ASYNC_ENABLE_MS = 1;
 
-    private SingleThreadedEventLooper singleThreadedEventLooper;
+  private SingleThreadedEventLooper singleThreadedEventLooper;
 
-    @Mock
-    private SocketAddress socketAddress;
+  @Mock
+  private SocketAddress socketAddress;
 
-    @Mock
-    private PeerRegistry peerRegistry;
+  @Mock
+  private PeerRegistry peerRegistry;
 
-    @Mock
-    private MessageStore messageStore;
+  @Mock
+  private MessageStore messageStore;
 
-    private TestSelectorProvider selectorProvider;
+  private TestSelectorProvider selectorProvider;
 
-    @Before
-    public void buildLooper() {
-        selectorProvider = new TestSelectorProvider();
+  @Before
+  public void buildLooper() {
+    selectorProvider = new TestSelectorProvider();
 
-        singleThreadedEventLooper = SingleThreadedEventLooper
-                .builder()
-                .socketAddress(socketAddress)
-                .incomingBuffer(ByteBuffer.allocateDirect(TEST_BUFFER_SIZE))
-                .selectTimeoutSeconds(TEST_SELECT_TIMEOUT_SECONDS)
-                .messageCharset(StandardCharsets.UTF_8)
-                .peerRegistry(peerRegistry)
-                .messageStore(messageStore)
-                .selectorProvider(selectorProvider)
-                .build();
-    }
+    singleThreadedEventLooper = SingleThreadedEventLooper
+        .builder()
+        .socketAddress(socketAddress)
+        .incomingBuffer(ByteBuffer.allocateDirect(TEST_BUFFER_SIZE))
+        .messageCharset(StandardCharsets.UTF_8)
+        .peerRegistry(peerRegistry)
+        .messageStore(messageStore)
+        .selectorProvider(selectorProvider)
+        .asyncEnableTimeoutMs(TEST_ASYNC_ENABLE_MS)
+        .build();
+  }
 
-    private Thread buildStarterThread(final SingleThreadedEventLooper looper) {
-        return new Thread(() -> {
-            try {
-                looper.loop();
-            } catch (final IOException ioe) {
-                LOGGER.warn("I/O exception while looping", ioe);
-            }
-        });
-    }
+  private Thread buildStarterThread(final SingleThreadedEventLooper looper) {
+    return new Thread(() -> {
+      try {
+        looper.loop();
+      } catch (final IOException ioe) {
+        LOGGER.warn("I/O exception while looping", ioe);
+      }
+    });
+  }
 
-    private Thread buildJoinerThread(final SingleThreadedEventLooper looper) {
-        return new Thread(() -> {
-            try {
-                looper.halt();
-            } catch (final InterruptedException ie) {
-                LOGGER.warn("exception while halting", ie);
-            }
-        });
-    }
+  private Thread buildJoinerThread(final SingleThreadedEventLooper looper) {
+    return new Thread(() -> {
+      try {
+        looper.halt();
+      } catch (final InterruptedException ie) {
+        LOGGER.warn("exception while halting", ie);
+      }
+    });
+  }
 
-    private void joinSerially(final Thread... threads) {
-        LOGGER.trace("attempting join of {} threads", threads.length);
+  private void joinSerially(final Thread... threads) {
+    LOGGER.trace("attempting join of {} threads", threads.length);
 
-        Arrays.stream(threads).forEach(thread -> {
-            try {
-                thread.join();
-            } catch (final InterruptedException ie) {
-                throw new RuntimeException(ie);
-            }
-        });
+    Arrays.stream(threads).forEach(thread -> {
+      try {
+        thread.join();
+      } catch (final InterruptedException ie) {
+        throw new RuntimeException(ie);
+      }
+    });
 
-        LOGGER.trace("joins completed normally");
-    }
+    LOGGER.trace("joins completed normally");
+  }
 
-    @Test
-    public void testLoopStartsAndStops() {
-        final var starterThread = buildStarterThread(singleThreadedEventLooper);
-        final var joinerThread = buildJoinerThread(singleThreadedEventLooper);
+  @Test
+  public void testLoopStartsAndStops() {
+    final var starterThread = buildStarterThread(singleThreadedEventLooper);
+    final var joinerThread = buildJoinerThread(singleThreadedEventLooper);
 
-        joinSerially(starterThread, joinerThread);
-    }
+    joinSerially(starterThread, joinerThread);
+  }
 }

@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -34,16 +33,16 @@ public final class SingleThreadedEventLooper implements
     PeerCountingReadWriteSelector,
     NonBlockingAcceptorSelector {
 
-  private static final int SELECTION_KEY_TIMEOUT_MS = 1000;
   private final SocketAddress socketAddress;
-  private final long selectTimeoutSeconds;
   private final Charset messageCharset;
   private final PeerRegistry peerRegistry;
   private final MessageStore messageStore;
   private final SelectorProvider selectorProvider;
   private final ByteBuffer incomingBuffer;
-  private final CountDownLatch latch = new CountDownLatch(1);
+  private final int asyncEnableTimeoutMs;
 
+  private final CountDownLatch latch
+      = new CountDownLatch(1);
   private final AtomicReference<ServerSocketChannel> serverSocketChannelRef
       = new AtomicReference<>();
   private final AtomicReference<Selector> selectorRef
@@ -227,7 +226,7 @@ public final class SingleThreadedEventLooper implements
   private void asyncEnable(final SelectionKey key, final int mask) {
     CompletableFuture.runAsync(() -> {
       try {
-        Thread.sleep(SELECTION_KEY_TIMEOUT_MS);
+        Thread.sleep(asyncEnableTimeoutMs);
         key.interestOpsOr(mask);
         selectorRef.get().wakeup();
       } catch (final CancelledKeyException cke) {

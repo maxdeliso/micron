@@ -32,7 +32,11 @@ final class Main {
    */
   private static final int MAX_MESSAGES = 8192;
 
-  private static final String NO_NEW_DATA_MESSAGE = "\0";
+  /**
+   * How long to wait in between subsequent batches of non-zero returning writes
+   * or reads to a given peer, in milliseconds.
+   */
+  private static final int ASYNC_ENABLE_TIMEOUT_MS = 100;
 
   public static void main(final String[] args) {
     final var peerRegistry = new InMemoryPeerRegistry();
@@ -42,13 +46,15 @@ final class Main {
     final var incomingBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     final var looper =
-        SingleThreadedEventLooper.builder()
+        SingleThreadedEventLooper
+            .builder()
             .incomingBuffer(incomingBuffer)
             .messageCharset(StandardCharsets.UTF_8)
             .messageStore(messageStore)
             .peerRegistry(peerRegistry)
             .selectorProvider(SelectorProvider.provider())
             .socketAddress(new InetSocketAddress(SERVER_PORT))
+            .asyncEnableTimeoutMs(ASYNC_ENABLE_TIMEOUT_MS)
             .build();
 
     getRuntime().addShutdownHook(new Thread(() -> {
