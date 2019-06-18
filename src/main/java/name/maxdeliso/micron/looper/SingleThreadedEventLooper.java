@@ -128,13 +128,38 @@ public final class SingleThreadedEventLooper implements
       final SelectionKey key,
       final Peer peer) {
 
-    int readCalls = 0;
-    int bytesReadTotal = 0;
-    boolean endOfFile = false;
+    final PeerReadResult peerReadResult = performRead(peer);
+    final String incoming;
+
+    if (peerReadResult.getBytesReadTotal() == 0) {
+      incoming = null;
+
+      log.trace("read no bytes from peer {}", peer);
+    } else {
+      log.trace("read {} bytes from peer {} in {} operations",
+          peerReadResult.getBytesReadTotal(), peer, peerReadResult.getReadCalls());
+
+      final var bytesReadTotal = peerReadResult.getBytesReadTotal();
+      final var incomingBytes = new byte[bytesReadTotal];
+      incomingBuffer.flip();
+      incomingBuffer.get(incomingBytes, 0, bytesReadTotal);
+      incomingBuffer.rewind();
+      incoming = new String(incomingBytes, messageCharset);
+    }
+
+    toggleMaskAsync(key, SelectionKey.OP_READ);
+
+    return Optional.ofNullable(incoming);
+  }
+
+  private PeerReadResult performRead(final Peer peer) {
+    var readCalls = 0;
+    var bytesReadTotal = 0;
+    var endOfFile = false;
 
     try {
       final var socketChannel = peer.getSocketChannel();
-      boolean doneReading = false;
+      var doneReading = false;
 
       do {
         final var bytesRead = socketChannel.read(incomingBuffer);
@@ -161,26 +186,11 @@ public final class SingleThreadedEventLooper implements
       log.warn("received end of stream from peer {}", peer);
     }
 
-    final String incoming;
-
-    if (bytesReadTotal == 0) {
-      incoming = null;
-
-      log.trace("read no bytes from peer {}", peer);
-    } else {
-      log.trace("read {} bytes from peer {} in {} operations",
-          bytesReadTotal, peer, readCalls);
-
-      final var incomingBytes = new byte[bytesReadTotal];
-      incomingBuffer.flip();
-      incomingBuffer.get(incomingBytes, 0, bytesReadTotal);
-      incomingBuffer.rewind();
-      incoming = new String(incomingBytes, messageCharset);
-    }
-
-    toggleMaskAsync(key, SelectionKey.OP_READ);
-
-    return Optional.ofNullable(incoming);
+    return PeerReadResult
+        .builder()
+        .bytesReadTotal(bytesReadTotal)
+        .readCalls(readCalls)
+        .build();
   }
 
   private void handleWritablePeer(final SelectionKey key, final Peer peer) {
