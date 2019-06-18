@@ -46,7 +46,6 @@ final class Main {
             .incomingBuffer(incomingBuffer)
             .messageCharset(StandardCharsets.UTF_8)
             .messageStore(messageStore)
-            .noNewDataMessage(NO_NEW_DATA_MESSAGE)
             .peerRegistry(peerRegistry)
             .selectorProvider(SelectorProvider.provider())
             .socketAddress(new InetSocketAddress(SERVER_PORT))
@@ -57,8 +56,8 @@ final class Main {
         log.trace("sending halt to looper...");
 
         looper.halt();
-      } catch (final InterruptedException | IOException exc) {
-        log.warn("exception while halting looper", exc);
+      } catch (final InterruptedException ie) {
+        log.warn("exception while halting looper", ie);
       }
     }));
 

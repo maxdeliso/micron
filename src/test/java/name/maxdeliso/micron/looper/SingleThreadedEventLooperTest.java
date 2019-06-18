@@ -25,8 +25,6 @@ public class SingleThreadedEventLooperTest {
 
     private static final int TEST_SELECT_TIMEOUT_SECONDS = 1;
 
-    private static final String TEST_NO_NEW_DATA_MESSAGE = "\b";
-
     private SingleThreadedEventLooper singleThreadedEventLooper;
 
     @Mock
@@ -49,7 +47,6 @@ public class SingleThreadedEventLooperTest {
                 .socketAddress(socketAddress)
                 .incomingBuffer(ByteBuffer.allocateDirect(TEST_BUFFER_SIZE))
                 .selectTimeoutSeconds(TEST_SELECT_TIMEOUT_SECONDS)
-                .noNewDataMessage(TEST_NO_NEW_DATA_MESSAGE)
                 .messageCharset(StandardCharsets.UTF_8)
                 .peerRegistry(peerRegistry)
                 .messageStore(messageStore)
@@ -71,8 +68,8 @@ public class SingleThreadedEventLooperTest {
         return new Thread(() -> {
             try {
                 looper.halt();
-            } catch (final InterruptedException | IOException exc) {
-                LOGGER.warn("exception while halting", exc);
+            } catch (final InterruptedException ie) {
+                LOGGER.warn("exception while halting", ie);
             }
         });
     }

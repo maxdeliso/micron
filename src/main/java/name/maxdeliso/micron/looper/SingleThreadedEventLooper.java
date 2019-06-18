@@ -16,12 +16,14 @@ import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -34,15 +36,17 @@ public final class SingleThreadedEventLooper implements
   private static final int SELECTION_KEY_TIMEOUT_MS = 1000;
   private final SocketAddress socketAddress;
   private final long selectTimeoutSeconds;
-  private final String noNewDataMessage;
   private final Charset messageCharset;
   private final PeerRegistry peerRegistry;
   private final MessageStore messageStore;
   private final SelectorProvider selectorProvider;
   private final ByteBuffer incomingBuffer;
   private final CountDownLatch latch = new CountDownLatch(1);
-  private ServerSocketChannel serverSocketChannel;
-  private Selector selector;
+
+  private final AtomicReference<ServerSocketChannel> serverSocketChannelRef
+      = new AtomicReference<>();
+  private final AtomicReference<Selector> selectorRef
+      = new AtomicReference<>();
 
   @Override
   public void loop() throws IOException {
@@ -51,9 +55,9 @@ public final class SingleThreadedEventLooper implements
     try (final var serverSocketChannel = selectorProvider.openServerSocketChannel();
          final var socketChannel = serverSocketChannel.bind(socketAddress);
          final var selector = selectorProvider.openSelector()) {
+      selectorRef.set(selector);
+      serverSocketChannelRef.set(serverSocketChannel);
 
-      this.selector = selector;
-      this.serverSocketChannel = serverSocketChannel;
       serverSocketChannel.configureBlocking(false);
       socketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
@@ -94,14 +98,27 @@ public final class SingleThreadedEventLooper implements
   }
 
   @Override
-  public void halt() throws InterruptedException, IOException {
-    if (this.serverSocketChannel != null && serverSocketChannel.isOpen()) {
-      this.serverSocketChannel.close();
-    }
+  public void halt() throws InterruptedException {
+    Optional
+        .ofNullable(serverSocketChannelRef.get())
+        .filter(AbstractInterruptibleChannel::isOpen)
+        .ifPresentOrElse(ss -> {
+          try {
+            log.trace("closing server socket channel during halt...");
+            ss.close();
+            log.trace("closed server socket channel during halt...");
+          } catch (final IOException ioe) {
+            log.trace("warn failed to close server socket channel during halt...", ioe);
+          }
+        }, () -> {
+          log.warn("halting prior to server socket channel ref becoming available");
+        });
 
-    if (this.selector != null) {
-      selector.wakeup();
-    }
+    Optional
+        .ofNullable(selectorRef.get())
+        .ifPresentOrElse(Selector::wakeup, () -> {
+          log.warn("select ref was absent during halt...");
+        });
 
     latch.await();
   }
@@ -211,7 +228,7 @@ public final class SingleThreadedEventLooper implements
       try {
         Thread.sleep(SELECTION_KEY_TIMEOUT_MS);
         key.interestOpsOr(mask);
-        selector.wakeup();
+        selectorRef.get().wakeup();
       } catch (final CancelledKeyException cke) {
         log.trace("key was cancelled while toggling async interest ops", cke);
       } catch (final InterruptedException ie) {

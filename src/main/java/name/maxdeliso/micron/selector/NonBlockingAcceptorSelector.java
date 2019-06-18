@@ -12,7 +12,7 @@ public interface NonBlockingAcceptorSelector {
    * Handles an accept event when detected on the server socket channel.
    *
    * @param serverSocketChannel the server socket channel.
-   * @param selector            a selector to register the newly accepted channel.
+   * @param selector            a selectorRef to register the newly accepted channel.
    * @param peerConsumer        a callback to execute after the new channel is registered.
    * @throws IOException if an issue occurs while handling the acceptance.
    */
