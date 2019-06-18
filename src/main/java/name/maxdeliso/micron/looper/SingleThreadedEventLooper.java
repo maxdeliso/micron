@@ -109,36 +109,53 @@ public final class SingleThreadedEventLooper implements
   private Optional<String> handleReadablePeer(
       final SelectionKey key,
       final Peer peer) {
-    final int bytesRead;
+
+    int readCalls = 0;
+    int bytesReadTotal = 0;
+    boolean reachedEOF = false;
 
     try {
-      bytesRead = peer.getSocketChannel().read(incomingBuffer);
+      final var socketChannel = peer.getSocketChannel();
+      boolean doneReading = false;
+
+      do {
+        final var bytesRead = socketChannel.read(incomingBuffer);
+        readCalls++;
+
+        if (bytesRead == 0) {
+          doneReading = true;
+        } else if (bytesRead == -1) {
+          doneReading = true;
+          reachedEOF = true;
+        } else {
+          bytesReadTotal += bytesRead;
+        }
+      } while (!doneReading);
     } catch (final IOException ioe) {
       peerRegistry.evictPeer(peer);
 
       log.warn("failed to read from peer {}, so evicted", peer, ioe);
+    }
 
-      return Optional.empty();
+    if (reachedEOF) {
+      peerRegistry.evictPeer(peer);
+
+      log.warn("received end of stream from peer {}", peer);
     }
 
     final String incoming;
 
-    if (bytesRead == 0) {
+    if (bytesReadTotal == 0) {
       incoming = null;
 
       log.trace("read no bytes from peer {}", peer);
-    } else if (bytesRead == -1) {
-      incoming = null;
-
-      peerRegistry.evictPeer(peer);
-
-      log.warn("received end of stream from peer {}", peer);
     } else {
-      log.trace("read {} bytes from peer {}", bytesRead, peer);
+      log.trace("read {} bytes from peer {} in {} operations",
+          bytesReadTotal, peer, readCalls);
 
-      final var incomingBytes = new byte[bytesRead];
+      final var incomingBytes = new byte[bytesReadTotal];
       incomingBuffer.flip();
-      incomingBuffer.get(incomingBytes, 0, bytesRead);
+      incomingBuffer.get(incomingBytes, 0, bytesReadTotal);
       incomingBuffer.rewind();
       incoming = new String(incomingBytes, messageCharset);
     }
@@ -150,15 +167,16 @@ public final class SingleThreadedEventLooper implements
 
   private void handleWritablePeer(final SelectionKey key, final Peer peer) {
     try {
-
       final Stream<String> messageStream = messageStore.getFrom(peer.getPosition());
       final AtomicLong messageCount = new AtomicLong(0);
       final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
-      messageStream.map(String::getBytes).forEach(bytes -> {
-        messageCount.incrementAndGet();
-        byteArrayOutputStream.writeBytes(bytes);
-      });
+      messageStream
+          .map(String::getBytes)
+          .forEach(bytes -> {
+            messageCount.incrementAndGet();
+            byteArrayOutputStream.writeBytes(bytes);
+          });
 
       if (messageCount.get() > 0) {
         final var bufferToWrite = ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
@@ -188,8 +206,8 @@ public final class SingleThreadedEventLooper implements
     }
   }
 
-  private CompletableFuture<Void> asyncEnable(final SelectionKey key, final int mask) {
-    return CompletableFuture.runAsync(() -> {
+  private void asyncEnable(final SelectionKey key, final int mask) {
+    CompletableFuture.runAsync(() -> {
       try {
         Thread.sleep(SELECTION_KEY_TIMEOUT_MS);
         key.interestOpsOr(mask);
