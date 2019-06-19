@@ -155,7 +155,7 @@ public final class SingleThreadedEventLooper implements
   private PeerReadResult performRead(final Peer peer) {
     var readCalls = 0;
     var bytesReadTotal = 0;
-    var endOfFile = false;
+    var evictPeer = false;
 
     try {
       final var socketChannel = peer.getSocketChannel();
@@ -163,27 +163,28 @@ public final class SingleThreadedEventLooper implements
 
       do {
         final var bytesRead = socketChannel.read(incomingBuffer);
+
         readCalls++;
 
         if (bytesRead == 0) {
           doneReading = true;
         } else if (bytesRead == -1) {
           doneReading = true;
-          endOfFile = true;
+          evictPeer = true;
         } else {
           bytesReadTotal += bytesRead;
         }
       } while (!doneReading);
     } catch (final IOException ioe) {
-      peerRegistry.evictPeer(peer);
+      log.warn("io error while reading from peer, so marking for eviction", ioe);
 
-      log.warn("failed to read from peer {}, so evicted", peer, ioe);
-    }
+      evictPeer = true;
+    } finally {
+      if (evictPeer) {
+        peerRegistry.evictPeer(peer);
 
-    if (endOfFile) {
-      peerRegistry.evictPeer(peer);
-
-      log.warn("received end of stream from peer {}", peer);
+        log.warn("received end of stream from peer {}", peer);
+      }
     }
 
     return PeerReadResult
