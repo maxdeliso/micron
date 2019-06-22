@@ -12,20 +12,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Random;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SingleThreadedEventLooperTest {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedEventLooperTest.class);
+public class SingleThreadedStreamingEventLooperTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedStreamingEventLooperTest.class);
 
   private static final int TEST_BUFFER_SIZE = 1;
 
   private static final int TEST_ASYNC_ENABLE_MS = 1;
 
-  private SingleThreadedEventLooper singleThreadedEventLooper;
+  private static final Random random = new Random();
+
+  private SingleThreadedStreamingEventLooper singleThreadedStreamingEventLooper;
 
   @Mock
   private SocketAddress socketAddress;
@@ -42,19 +47,18 @@ public class SingleThreadedEventLooperTest {
   public void buildLooper() {
     selectorProvider = new TestSelectorProvider();
 
-    singleThreadedEventLooper = SingleThreadedEventLooper
-        .builder()
-        .socketAddress(socketAddress)
-        .incomingBuffer(ByteBuffer.allocateDirect(TEST_BUFFER_SIZE))
-        .messageCharset(StandardCharsets.UTF_8)
-        .peerRegistry(peerRegistry)
-        .messageStore(messageStore)
-        .selectorProvider(selectorProvider)
-        .asyncEnableTimeoutMs(TEST_ASYNC_ENABLE_MS)
-        .build();
+    new SingleThreadedStreamingEventLooper(
+        socketAddress,
+        StandardCharsets.UTF_8,
+        peerRegistry,
+        messageStore,
+        selectorProvider,
+        ByteBuffer.allocateDirect(TEST_BUFFER_SIZE),
+        TEST_ASYNC_ENABLE_MS,
+        random);
   }
 
-  private Thread buildStarterThread(final SingleThreadedEventLooper looper) {
+  private Thread buildStarterThread(final SingleThreadedStreamingEventLooper looper) {
     return new Thread(() -> {
       try {
         looper.loop();
@@ -64,7 +68,7 @@ public class SingleThreadedEventLooperTest {
     });
   }
 
-  private Thread buildJoinerThread(final SingleThreadedEventLooper looper) {
+  private Thread buildJoinerThread(final SingleThreadedStreamingEventLooper looper) {
     return new Thread(() -> {
       try {
         looper.halt();
@@ -90,8 +94,8 @@ public class SingleThreadedEventLooperTest {
 
   @Test
   public void testLoopStartsAndStops() {
-    final var starterThread = buildStarterThread(singleThreadedEventLooper);
-    final var joinerThread = buildJoinerThread(singleThreadedEventLooper);
+    final var starterThread = buildStarterThread(singleThreadedStreamingEventLooper);
+    final var joinerThread = buildJoinerThread(singleThreadedStreamingEventLooper);
 
     joinSerially(starterThread, joinerThread);
   }

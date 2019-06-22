@@ -1,6 +1,5 @@
 package name.maxdeliso.micron.looper;
 
-import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.MessageStore;
 import name.maxdeliso.micron.peer.Peer;
@@ -12,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -21,15 +19,13 @@ import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 @Slf4j
-@Builder
-public final class SingleThreadedEventLooper implements
+public final class SingleThreadedStreamingEventLooper implements
     EventLooper,
     PeerCountingReadWriteSelector,
     NonBlockingAcceptorSelector {
@@ -40,7 +36,7 @@ public final class SingleThreadedEventLooper implements
   private final MessageStore messageStore;
   private final SelectorProvider selectorProvider;
   private final ByteBuffer incomingBuffer;
-  private final int asyncEnableTimeoutMs;
+  private final SelectionKeyToggler selectionKeyToggler;
 
   private final CountDownLatch latch
       = new CountDownLatch(1);
@@ -49,12 +45,25 @@ public final class SingleThreadedEventLooper implements
   private final AtomicReference<Selector> selectorRef
       = new AtomicReference<>();
 
-  private final Random random = new Random();
+  public SingleThreadedStreamingEventLooper(final SocketAddress socketAddress,
+                                            final Charset messageCharset,
+                                            final PeerRegistry peerRegistry,
+                                            final MessageStore messageStore,
+                                            final SelectorProvider selectorProvider,
+                                            final ByteBuffer incomingBuffer,
+                                            final int asyncEnableTimeoutMs,
+                                            final Random random) {
+    this.socketAddress = socketAddress;
+    this.messageCharset = messageCharset;
+    this.peerRegistry = peerRegistry;
+    this.messageStore = messageStore;
+    this.selectorProvider = selectorProvider;
+    this.incomingBuffer = incomingBuffer;
+    this.selectionKeyToggler = new SelectionKeyToggler(random, asyncEnableTimeoutMs, selectorRef);
+  }
 
   @Override
   public void loop() throws IOException {
-    log.info("entering event loop");
-
     try (final var serverSocketChannel = selectorProvider.openServerSocketChannel();
          final var socketChannel = serverSocketChannel.bind(socketAddress);
          final var selector = selectorProvider.openSelector()) {
@@ -147,7 +156,7 @@ public final class SingleThreadedEventLooper implements
       incoming = new String(incomingBytes, messageCharset);
     }
 
-    toggleMaskAsync(key, SelectionKey.OP_READ);
+    selectionKeyToggler.toggleMaskAsync(key, SelectionKey.OP_READ);
 
     return Optional.ofNullable(incoming);
   }
@@ -215,37 +224,11 @@ public final class SingleThreadedEventLooper implements
         log.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);
       }
 
-      toggleMaskAsync(key, SelectionKey.OP_WRITE);
+      selectionKeyToggler.toggleMaskAsync(key, SelectionKey.OP_WRITE);
     } catch (final IOException ioe) {
       peerRegistry.evictPeer(peer);
 
       log.warn("failed to write to peer {}", peer, ioe);
     }
-  }
-
-  private void toggleMaskAsync(final SelectionKey key, final int mask) {
-    try {
-      if ((key.interestOpsAnd(~mask) & mask) == mask) {
-        asyncEnable(key, mask);
-      } else {
-        log.trace("clearing interest ops had no effect on key {}", key);
-      }
-    } catch (final CancelledKeyException cke) {
-      log.warn("key was cancelled", cke);
-    }
-  }
-
-  private void asyncEnable(final SelectionKey key, final int mask) {
-    CompletableFuture.runAsync(() -> {
-      try {
-        Thread.sleep((asyncEnableTimeoutMs + random.nextInt(asyncEnableTimeoutMs) / 2));
-        key.interestOpsOr(mask);
-        selectorRef.get().wakeup();
-      } catch (final CancelledKeyException cke) {
-        log.trace("key was cancelled while toggling async interest ops", cke);
-      } catch (final InterruptedException ie) {
-        throw new RuntimeException(ie);
-      }
-    });
   }
 }
