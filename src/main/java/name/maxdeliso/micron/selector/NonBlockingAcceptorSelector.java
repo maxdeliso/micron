@@ -1,11 +1,12 @@
 package name.maxdeliso.micron.selector;
 
+import name.maxdeliso.micron.looper.SelectionKeyToggler;
+
 import java.io.IOException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+
 
 public interface NonBlockingAcceptorSelector {
   /**
@@ -18,8 +19,14 @@ public interface NonBlockingAcceptorSelector {
    */
   default void handleAccept(final ServerSocketChannel serverSocketChannel,
                             final Selector selector,
+                            final SelectionKeyToggler selectionKeyToggler,
                             final BiConsumer<SocketChannel, SelectionKey> peerConsumer)
       throws IOException {
+
+    final SelectionKey acceptSelectionKey = serverSocketChannel.register(selector, 0);
+
+    selectionKeyToggler.asyncEnable(acceptSelectionKey, SelectionKey.OP_ACCEPT);
+
     final SocketChannel socketChannel = serverSocketChannel.accept();
 
     if (socketChannel == null) {
