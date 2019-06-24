@@ -2,12 +2,10 @@ package name.maxdeliso.micron.looper;
 
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.MessageStore;
-import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
 import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -20,9 +18,7 @@ import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
 
 @Slf4j
 public final class SingleThreadedStreamingEventLooper implements
@@ -31,12 +27,8 @@ public final class SingleThreadedStreamingEventLooper implements
     NonBlockingAcceptorSelector {
 
   private final SocketAddress socketAddress;
-  private final Charset messageCharset;
   private final PeerRegistry peerRegistry;
-  private final MessageStore messageStore;
   private final SelectorProvider selectorProvider;
-  private final ByteBuffer incomingBuffer;
-  private final SelectionKeyToggler selectionKeyToggler;
 
   private final CountDownLatch latch
       = new CountDownLatch(1);
@@ -44,6 +36,10 @@ public final class SingleThreadedStreamingEventLooper implements
       = new AtomicReference<>();
   private final AtomicReference<Selector> selectorRef
       = new AtomicReference<>();
+
+  private final SelectionKeyToggler selectionKeyToggler;
+  private final ReadHandler readHandler;
+  private final WriteHandler writeHandler;
 
   public SingleThreadedStreamingEventLooper(final SocketAddress socketAddress,
                                             final Charset messageCharset,
@@ -54,12 +50,25 @@ public final class SingleThreadedStreamingEventLooper implements
                                             final int asyncEnableTimeoutMs,
                                             final Random random) {
     this.socketAddress = socketAddress;
-    this.messageCharset = messageCharset;
     this.peerRegistry = peerRegistry;
-    this.messageStore = messageStore;
     this.selectorProvider = selectorProvider;
-    this.incomingBuffer = incomingBuffer;
-    this.selectionKeyToggler = new SelectionKeyToggler(random, asyncEnableTimeoutMs, selectorRef);
+
+    this.selectionKeyToggler = new SelectionKeyToggler(
+        random,
+        asyncEnableTimeoutMs,
+        selectorRef);
+
+    this.readHandler = new ReadHandler(
+        incomingBuffer,
+        messageCharset,
+        peerRegistry,
+        messageStore,
+        selectionKeyToggler);
+
+    this.writeHandler = new WriteHandler(
+        messageStore,
+        selectionKeyToggler,
+        peerRegistry);
   }
 
   @Override
@@ -78,27 +87,31 @@ public final class SingleThreadedStreamingEventLooper implements
 
         for (final var selectedKey : selector.selectedKeys()) {
           if (selectedKey.isValid()
-              && selectedKey.isAcceptable()) {
-            handleAccept(serverSocketChannel, selector,
+              && selectedKey.isAcceptable()
+              && ((selectedKey.interestOps() & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT)) {
+            handleAccept(
+                serverSocketChannel,
+                selector,
+                selectionKeyToggler,
                 (channel, key) -> associatePeer(channel, key, peerRegistry));
           }
 
           if (selectedKey.isValid()
               && selectedKey.isWritable()
               && ((selectedKey.interestOps() & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE)) {
-            handleWritableKey(selectedKey, peerRegistry, this::handleWritablePeer);
+            handleWritableKey(selectedKey, peerRegistry, (selectionKey, peer) ->
+                this.writeHandler.handleWritablePeer(selectedKey, peer));
           }
 
           if (selectedKey.isValid()
               && selectedKey.isReadable()
               && ((selectedKey.interestOps() & SelectionKey.OP_READ) == SelectionKey.OP_READ)) {
             handleReadableKey(selectedKey, peerRegistry,
-                peer -> handleReadablePeer(selectedKey, peer)
-                    .ifPresent(message -> {
-                      if (!messageStore.add(message)) {
-                        log.warn("discarded message due to overflow");
-                      }
-                    }));
+                peer -> {
+                  if (!readHandler.handleReadablePeer(selectedKey, peer)) {
+                    log.warn("discarded message due to overflow");
+                  }
+                });
           }
         }
       }
@@ -131,104 +144,5 @@ public final class SingleThreadedStreamingEventLooper implements
         });
 
     latch.await();
-  }
-
-  private Optional<String> handleReadablePeer(
-      final SelectionKey key,
-      final Peer peer) {
-
-    final PeerReadResult peerReadResult = performRead(peer);
-    final String incoming;
-
-    if (peerReadResult.getBytesReadTotal() == 0) {
-      incoming = null;
-
-      log.trace("read no bytes from peer {}", peer);
-    } else {
-      log.trace("read {} bytes from peer {} in {} operations",
-          peerReadResult.getBytesReadTotal(), peer, peerReadResult.getReadCalls());
-
-      final var bytesReadTotal = peerReadResult.getBytesReadTotal();
-      final var incomingBytes = new byte[bytesReadTotal];
-      incomingBuffer.flip();
-      incomingBuffer.get(incomingBytes, 0, bytesReadTotal);
-      incomingBuffer.rewind();
-      incoming = new String(incomingBytes, messageCharset);
-    }
-
-    selectionKeyToggler.toggleMaskAsync(key, SelectionKey.OP_READ);
-
-    return Optional.ofNullable(incoming);
-  }
-
-  private PeerReadResult performRead(final Peer peer) {
-    var readCalls = 0;
-    var bytesReadTotal = 0;
-    var evictPeer = false;
-
-    try {
-      final var socketChannel = peer.getSocketChannel();
-      var doneReading = false;
-
-      do {
-        final var bytesRead = socketChannel.read(incomingBuffer);
-
-        readCalls++;
-
-        if (bytesRead == 0) {
-          doneReading = true;
-        } else if (bytesRead == -1) {
-          doneReading = true;
-          evictPeer = true;
-        } else {
-          bytesReadTotal += bytesRead;
-        }
-      } while (!doneReading);
-    } catch (final IOException ioe) {
-      log.warn("io error while reading from peer, so marking for eviction", ioe);
-
-      evictPeer = true;
-    } finally {
-      if (evictPeer) {
-        peerRegistry.evictPeer(peer);
-
-        log.warn("received end of stream from peer {}", peer);
-      }
-    }
-
-    return PeerReadResult
-        .builder()
-        .bytesReadTotal(bytesReadTotal)
-        .readCalls(readCalls)
-        .build();
-  }
-
-  private void handleWritablePeer(final SelectionKey key, final Peer peer) {
-    try {
-      final Stream<String> messageStream = messageStore.getFrom(peer.getPosition());
-      final AtomicInteger messageCount = new AtomicInteger(0);
-      final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-
-      messageStream
-          .map(String::getBytes)
-          .forEach(bytes -> {
-            messageCount.incrementAndGet();
-            byteArrayOutputStream.writeBytes(bytes);
-          });
-
-      if (messageCount.get() > 0) {
-        final var bufferToWrite = ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
-        final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
-        final var newPosition = peer.advancePosition(messageCount.get());
-
-        log.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);
-      }
-
-      selectionKeyToggler.toggleMaskAsync(key, SelectionKey.OP_WRITE);
-    } catch (final IOException ioe) {
-      peerRegistry.evictPeer(peer);
-
-      log.warn("failed to write to peer {}", peer, ioe);
-    }
   }
 }

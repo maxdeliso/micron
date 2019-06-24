@@ -18,20 +18,22 @@ public class SelectionKeyToggler {
   private final int asyncEnableTimeoutMs;
   private final AtomicReference<Selector> selectorAtomicReference;
 
-  public void toggleMaskAsync(final SelectionKey key, final int mask) {
+  public CompletableFuture<Void> toggleMaskAsync(final SelectionKey key, final int mask) {
     try {
       if ((key.interestOpsAnd(~mask) & mask) == mask) {
-        asyncEnable(key, mask);
+        return asyncEnable(key, mask);
       } else {
         log.trace("clearing interest ops had no effect on key {}", key);
       }
     } catch (final CancelledKeyException cke) {
       log.warn("key was cancelled", cke);
     }
+
+    return CompletableFuture.completedFuture(null);
   }
 
-  private void asyncEnable(final SelectionKey key, final int mask) {
-    CompletableFuture.runAsync(() -> {
+  public CompletableFuture<Void> asyncEnable(final SelectionKey key, final int mask) {
+    return CompletableFuture.runAsync(() -> {
       try {
         Thread.sleep((asyncEnableTimeoutMs + random.nextInt(asyncEnableTimeoutMs) / 2));
         key.interestOpsOr(mask);
