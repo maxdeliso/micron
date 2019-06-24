@@ -46,12 +46,10 @@ final class Main {
 
     final var random = new Random();
 
-    final var messageCharset = StandardCharsets.UTF_8;
-
     final var looper =
         new SingleThreadedStreamingEventLooper(
             new InetSocketAddress(SERVER_PORT),
-            messageCharset,
+            StandardCharsets.UTF_8,
             peerRegistry,
             messageStore,
             SelectorProvider.provider(),
