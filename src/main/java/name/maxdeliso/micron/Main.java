@@ -35,7 +35,7 @@ final class Main {
    * How long to wait in between subsequent batches of non-zero returning writes
    * or reads to a given peer, in milliseconds.
    */
-  private static final int ASYNC_ENABLE_TIMEOUT_MS = 100;
+  private static final int ASYNC_ENABLE_TIMEOUT_MS = 1;
 
   public static void main(final String[] args) {
     final var peerRegistry = new InMemoryPeerRegistry();

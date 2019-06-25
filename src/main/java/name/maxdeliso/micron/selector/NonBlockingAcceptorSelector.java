@@ -1,6 +1,6 @@
 package name.maxdeliso.micron.selector;
 
-import name.maxdeliso.micron.looper.SelectionKeyToggler;
+import name.maxdeliso.micron.looper.toggler.SelectionKeyToggler;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -8,7 +8,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.function.BiConsumer;
-
 
 public interface NonBlockingAcceptorSelector {
   /**

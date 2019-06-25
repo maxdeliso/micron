@@ -1,7 +1,8 @@
-package name.maxdeliso.micron.looper;
+package name.maxdeliso.micron.looper.read;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import name.maxdeliso.micron.looper.toggler.SelectionKeyToggler;
 import name.maxdeliso.micron.message.MessageStore;
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
@@ -42,7 +43,7 @@ public class ReadHandler {
       incoming = new String(incomingBytes, messageCharset);
     }
 
-    selectionKeyToggler.toggleMaskAsync(key, SelectionKey.OP_READ);
+    selectionKeyToggler.asyncFlip(key, SelectionKey.OP_READ);
 
     return Optional
         .ofNullable(incoming)

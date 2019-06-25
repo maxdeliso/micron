@@ -1,4 +1,4 @@
-package name.maxdeliso.micron.looper;
+package name.maxdeliso.micron.looper.toggler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,13 +12,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @RequiredArgsConstructor
-public class SelectionKeyToggler {
+public class SelectionKeyToggler implements AsyncToggler {
 
   private final Random random;
   private final int asyncEnableTimeoutMs;
   private final AtomicReference<Selector> selectorAtomicReference;
 
-  public CompletableFuture<Void> toggleMaskAsync(final SelectionKey key, final int mask) {
+  @Override
+  public CompletableFuture<Void> asyncFlip(final SelectionKey key, final int mask) {
     try {
       if ((key.interestOpsAnd(~mask) & mask) == mask) {
         return asyncEnable(key, mask);
@@ -32,6 +33,7 @@ public class SelectionKeyToggler {
     return CompletableFuture.completedFuture(null);
   }
 
+  @Override
   public CompletableFuture<Void> asyncEnable(final SelectionKey key, final int mask) {
     return CompletableFuture.runAsync(() -> {
       try {

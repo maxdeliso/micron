@@ -1,4 +1,4 @@
-package name.maxdeliso.micron.looper;
+package name.maxdeliso.micron.looper.read;
 
 import lombok.Builder;
 import lombok.Value;
