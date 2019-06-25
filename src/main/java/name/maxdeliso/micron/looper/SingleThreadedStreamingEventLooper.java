@@ -109,7 +109,7 @@ public final class SingleThreadedStreamingEventLooper implements
             handleReadableKey(selectedKey, peerRegistry,
                 peer -> {
                   if (!readHandler.handleReadablePeer(selectedKey, peer)) {
-                    log.warn("discarded message due to overflow");
+                    log.info("no message read from peer");
                   }
                 });
           }
