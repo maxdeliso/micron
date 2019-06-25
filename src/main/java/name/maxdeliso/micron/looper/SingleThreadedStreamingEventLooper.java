@@ -1,9 +1,9 @@
 package name.maxdeliso.micron.looper;
 
 import lombok.extern.slf4j.Slf4j;
-import name.maxdeliso.micron.looper.read.ReadHandler;
+import name.maxdeliso.micron.looper.read.SerialReadHandler;
 import name.maxdeliso.micron.looper.toggler.SelectionKeyToggler;
-import name.maxdeliso.micron.looper.write.WriteHandler;
+import name.maxdeliso.micron.looper.write.SerialBufferingWriteHandler;
 import name.maxdeliso.micron.message.MessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
@@ -41,8 +41,8 @@ public final class SingleThreadedStreamingEventLooper implements
       = new AtomicReference<>();
 
   private final SelectionKeyToggler selectionKeyToggler;
-  private final ReadHandler readHandler;
-  private final WriteHandler writeHandler;
+  private final SerialReadHandler readHandler;
+  private final SerialBufferingWriteHandler writeHandler;
 
   public SingleThreadedStreamingEventLooper(final SocketAddress socketAddress,
                                             final Charset messageCharset,
@@ -61,14 +61,14 @@ public final class SingleThreadedStreamingEventLooper implements
         asyncEnableTimeoutMs,
         selectorRef);
 
-    this.readHandler = new ReadHandler(
+    this.readHandler = new SerialReadHandler(
         incomingBuffer,
         messageCharset,
         peerRegistry,
         messageStore,
         selectionKeyToggler);
 
-    this.writeHandler = new WriteHandler(
+    this.writeHandler = new SerialBufferingWriteHandler(
         messageStore,
         selectionKeyToggler,
         peerRegistry);
@@ -102,8 +102,12 @@ public final class SingleThreadedStreamingEventLooper implements
           if (selectedKey.isValid()
               && selectedKey.isWritable()
               && ((selectedKey.interestOps() & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE)) {
-            handleWritableKey(selectedKey, peerRegistry, (selectionKey, peer) ->
-                this.writeHandler.handleWritablePeer(selectedKey, peer));
+            handleWritableKey(selectedKey, peerRegistry, (selectionKey, peer) -> {
+                  if (!this.writeHandler.handleWritablePeer(selectedKey, peer)) {
+                    log.trace("no message written to peer: {}", peer);
+                  }
+                }
+            );
           }
 
           if (selectedKey.isValid()
@@ -112,7 +116,7 @@ public final class SingleThreadedStreamingEventLooper implements
             handleReadableKey(selectedKey, peerRegistry,
                 peer -> {
                   if (!readHandler.handleReadablePeer(selectedKey, peer)) {
-                    log.info("no message read from peer");
+                    log.trace("no message read from peer: {}", peer);
                   }
                 });
           }
