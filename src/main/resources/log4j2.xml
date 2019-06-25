@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="DEBUG" strict="true">
+<Configuration status="WARN" strict="true">
     <Appenders>
         <Appender type="Console" name="STDOUT">
             <Layout type="PatternLayout" pattern="%-5p [%t][%d{UNIX_MILLIS}]: %m%n"/>
@@ -7,7 +7,7 @@
     </Appenders>
 
     <Loggers>
-        <Root level="TRACE">
+        <Root level="WARN">
             <AppenderRef ref="STDOUT"/>
         </Root>
     </Loggers>
