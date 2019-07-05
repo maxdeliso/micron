@@ -8,11 +8,7 @@ public interface PeerRegistry {
 
   Peer allocatePeer(SocketChannel clientChannel);
 
-  Optional<Integer> minPosition();
-
-  Optional<Integer> maxPosition();
-
-  void resetPositions();
+  boolean positionOccupied(int pos);
 
   void evictPeer(Peer peer);
 }

@@ -9,6 +9,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Optional;
 
+import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -24,7 +25,7 @@ public class InMemoryMessageStoreTest {
     @Mock
     private PeerRegistry peerRegistry;
 
-    private MessageStore messageStore;
+    private RingBufferMessageStore messageStore;
 
     @Before
     public void buildMessageStore() {
@@ -35,56 +36,33 @@ public class InMemoryMessageStoreTest {
     public void testPutGet() {
         messageStore.add(TEST_MESSAGE);
 
-        final Optional<String> messageOpt = messageStore.get(0);
+        final String message = messageStore.get(0);
 
-        assertTrue(messageOpt.isPresent());
-        assertEquals(messageOpt.get(), TEST_MESSAGE);
+        assertEquals(message, TEST_MESSAGE);
     }
 
     @Test
     public void testEmptyGet() {
-        final Optional<String> messageOpt = messageStore.get(0);
+        final String message = messageStore.get(0);
 
-        assertFalse(messageOpt.isPresent());
+        assertNull(message);
     }
 
     @Test
-    public void testSingleProducerOverflowRotation() {
-        // min position is after all messages -> min reader is caught up at the end of the buffer
-        when(peerRegistry.minPosition()).thenReturn(Optional.of(TEST_MESSAGE_COUNT));
-
+    public void testSingleProducerOverwrite() {
         // fill buffer with strings of the form 0, 1, 2 ..., one past its capacity
         for (int i = 0; i < TEST_MESSAGE_COUNT + 1; i++) {
             messageStore.add(String.valueOf(i));
         }
 
-        assertTrue(messageStore.get(0).isPresent());
-        assertEquals(messageStore.get(0).get(), String.valueOf(TEST_MESSAGE_COUNT));
-        assertFalse(messageStore.get(1).isPresent());
+        // the last write should wrap around to the beginning
+        assertEquals(messageStore.get(0), String.valueOf(TEST_MESSAGE_COUNT));
     }
 
     @Test
     public void testMultipleProducerOverflow() {
-        // min position is zero -> min reader is at beginning of buffer
-        when(peerRegistry.minPosition()).thenReturn(Optional.of(0));
-        when(peerRegistry.maxPosition()).thenReturn(Optional.of(TEST_MESSAGE_COUNT)); // after last
+        when(peerRegistry.positionOccupied(1)).thenReturn(true);
 
-        // fill buffer with n strings of the form 0, 1, 2 ... (n - 1)
-        for (int i = 0; i < TEST_MESSAGE_COUNT; i++) {
-            final boolean added = messageStore.add(String.valueOf(i));
-            assertTrue(added);
-        }
-
-        // attempt to insert n + 1th message, observe failure
-        assertFalse(messageStore.add("next"));
-
-        // check first message is present and equal to "0"
-        assertTrue(messageStore.get(0).isPresent());
-        assertEquals(messageStore.get(0).get(), "0");
-
-        // check last message is present and equal to (n - 1) as a string
-        assertTrue(messageStore.get(TEST_MESSAGE_COUNT - 1).isPresent());
-        assertEquals(messageStore.get(TEST_MESSAGE_COUNT - 1).get(),
-                String.valueOf(TEST_MESSAGE_COUNT - 1));
+        assertFalse(messageStore.add("not-added"));
     }
 }

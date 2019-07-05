@@ -3,50 +3,39 @@ package name.maxdeliso.micron.looper.write;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.toggler.SelectionKeyToggler;
-import name.maxdeliso.micron.message.MessageStore;
+import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
+import java.nio.charset.Charset;
 
 @Slf4j
 @RequiredArgsConstructor
 public class SerialBufferingWriteHandler implements WriteHandler {
 
-  private final MessageStore messageStore;
+  private final RingBufferMessageStore messageStore;
   private final SelectionKeyToggler selectionKeyToggler;
   private final PeerRegistry peerRegistry;
+  private final Charset charset;
 
   @Override
   public boolean handleWritablePeer(final SelectionKey key, final Peer peer) {
-    boolean wroteMessage = false;
+    if (peer.position() == messageStore.position()) {
+      log.trace("nothing to write, peer is caught up");
+      return false;
+    }
 
     try {
-      final Stream<String> messageStream = messageStore.getFrom(peer.getPosition());
-      final AtomicInteger messageCount = new AtomicInteger(0);
-      final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      final var messageToWrite = messageStore.get(peer.position());
+      final var bytesToWrite = messageToWrite.getBytes(charset);
+      final var bufferToWrite = ByteBuffer.wrap(bytesToWrite);
+      final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
+      final var newPosition = peer.advancePosition(messageStore.size());
 
-      messageStream
-          .map(String::getBytes)
-          .forEach(bytes -> {
-            messageCount.incrementAndGet();
-            byteArrayOutputStream.writeBytes(bytes);
-          });
-
-      if (messageCount.get() > 0) {
-        final var bufferToWrite = ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
-        final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
-        final var newPosition = peer.advancePosition(messageCount.get());
-
-        wroteMessage = true;
-
-        log.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);
-      }
+      log.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);
 
       selectionKeyToggler.asyncFlip(key, SelectionKey.OP_WRITE);
     } catch (final IOException ioe) {
@@ -55,6 +44,6 @@ public class SerialBufferingWriteHandler implements WriteHandler {
       log.warn("failed to write to peer {}", peer, ioe);
     }
 
-    return wroteMessage;
+    return true;
   }
 }

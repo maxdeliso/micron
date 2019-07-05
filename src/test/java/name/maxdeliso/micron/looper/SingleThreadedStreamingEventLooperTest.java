@@ -1,6 +1,6 @@
 package name.maxdeliso.micron.looper;
 
-import name.maxdeliso.micron.message.MessageStore;
+import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.support.TestSelectorProvider;
 import org.junit.Before;
@@ -12,10 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Random;
@@ -39,7 +37,7 @@ public class SingleThreadedStreamingEventLooperTest {
   private PeerRegistry peerRegistry;
 
   @Mock
-  private MessageStore messageStore;
+  private RingBufferMessageStore messageStore;
 
   private TestSelectorProvider selectorProvider;
 

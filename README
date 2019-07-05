@@ -1,2 +1,0 @@
-docker build -t micron .
-docker run -p 1337:1337 micron:latest

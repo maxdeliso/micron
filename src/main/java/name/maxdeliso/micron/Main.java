@@ -29,7 +29,7 @@ final class Main {
    * of all currently connected peers is used to determine
    * the subsection of messages that it's safe to discard.
    */
-  private static final int MAX_MESSAGES = 8192;
+  private static final int MAX_MESSAGES = 1024;
 
   /**
    * How long to wait in between subsequent batches of non-zero returning writes

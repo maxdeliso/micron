@@ -9,6 +9,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -40,28 +41,12 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
   }
 
   @Override
-  public Optional<Integer> minPosition() {
+  public boolean positionOccupied(int pos) {
     return peerMap
         .values()
         .parallelStream()
-        .map(Peer::getPosition)
-        .min(Integer::compare);
-  }
-
-  @Override
-  public Optional<Integer> maxPosition() {
-    return peerMap
-        .values()
-        .parallelStream()
-        .map(Peer::getPosition)
-        .max(Integer::compare);
-  }
-
-  @Override
-  public void resetPositions() {
-    peerMap.values()
-        .parallelStream()
-        .forEach(Peer::resetPosition);
+        .map(Peer::position)
+        .anyMatch(position -> position == pos);
   }
 
   /**
