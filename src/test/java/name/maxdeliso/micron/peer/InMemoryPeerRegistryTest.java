@@ -16,6 +16,8 @@ import static org.junit.Assert.*;
 @RunWith(MockitoJUnitRunner.class)
 public class InMemoryPeerRegistryTest {
 
+    private final int MAX_MESSAGES = 8;
+
     private SelectorProvider selectorProvider;
 
     private SocketChannel socketChannel;
@@ -44,12 +46,8 @@ public class InMemoryPeerRegistryTest {
         peerRegistry.allocatePeer(socketChannel);
 
         final Optional<Peer> peerOpt = peerRegistry.get(0);
-        final Optional<Integer> minPositionOpt = peerRegistry.minPosition();
 
         assertTrue(peerOpt.isPresent());
-
-        assertTrue(minPositionOpt.isPresent());
-        assertEquals(0L, (long) minPositionOpt.get());
     }
 
     @Test
@@ -62,22 +60,19 @@ public class InMemoryPeerRegistryTest {
     }
 
     @Test
-    public void testMinPeerPositionIsReturned() {
+    public void testTwoPeersAreSequentiallyNumbered() {
         final var firstPeer = peerRegistry.allocatePeer(socketChannel);
         final var secondPeer = peerRegistry.allocatePeer(socketChannel);
 
-        firstPeer.advancePosition();
-        secondPeer.advancePosition();
+        firstPeer.advancePosition(MAX_MESSAGES);
+        secondPeer.advancePosition(MAX_MESSAGES);
 
         final Optional<Peer> firstPeerOpt = peerRegistry.get(0);
         final Optional<Peer> secondPeerOpt = peerRegistry.get(1);
-        final Optional<Integer> minPositionOpt = peerRegistry.minPosition();
 
         assertTrue(firstPeerOpt.isPresent());
         assertEquals(firstPeerOpt.get(), firstPeer);
         assertTrue(secondPeerOpt.isPresent());
         assertEquals(secondPeerOpt.get(), secondPeer);
-        assertTrue(minPositionOpt.isPresent());
-        assertEquals(1L, (long) minPositionOpt.get());
     }
 }

@@ -3,7 +3,7 @@ package name.maxdeliso.micron.looper.read;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.toggler.SelectionKeyToggler;
-import name.maxdeliso.micron.message.MessageStore;
+import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 
@@ -20,7 +20,7 @@ public class SerialReadHandler implements ReadHandler {
   private final ByteBuffer incomingBuffer;
   private final Charset messageCharset;
   private final PeerRegistry peerRegistry;
-  private final MessageStore messageStore;
+  private final RingBufferMessageStore messageStore;
   private final SelectionKeyToggler selectionKeyToggler;
 
   @Override

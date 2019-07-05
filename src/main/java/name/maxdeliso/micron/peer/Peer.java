@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @ThreadSafe
 @Value
-public final class Peer implements PositionTracker {
+public final class Peer implements RingPositionTracker {
 
   private final int index;
 
@@ -29,22 +29,12 @@ public final class Peer implements PositionTracker {
   }
 
   @Override
-  public int advancePosition() {
-    return this.position.incrementAndGet();
+  public int advancePosition(int max) {
+    return this.position.updateAndGet(pos -> (pos + 1) % max);
   }
 
   @Override
-  public int advancePosition(final int delta) {
-    return this.position.addAndGet(delta);
-  }
-
-  @Override
-  public void resetPosition() {
-    this.position.set(0);
-  }
-
-  @Override
-  public int getPosition() {
+  public int position() {
     return this.position.get();
   }
 }

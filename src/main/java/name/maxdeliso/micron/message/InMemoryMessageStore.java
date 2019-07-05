@@ -1,25 +1,24 @@
 package name.maxdeliso.micron.message;
 
-
 import lombok.RequiredArgsConstructor;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import net.jcip.annotations.ThreadSafe;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RequiredArgsConstructor
 @ThreadSafe
-public final class InMemoryMessageStore implements MessageStore {
+public final class InMemoryMessageStore implements RingBufferMessageStore {
 
   private final int maxMessages;
 
   private final List<String> messages;
 
   private final PeerRegistry peerRegistry;
+
+  private final AtomicInteger position = new AtomicInteger(0);
 
   /**
    * Construct an in memory message store.
@@ -29,64 +28,41 @@ public final class InMemoryMessageStore implements MessageStore {
    */
   public InMemoryMessageStore(final int maxMessages, final PeerRegistry peerRegistry) {
     this.maxMessages = maxMessages;
-    this.messages = new ArrayList<>(maxMessages);
+    this.messages = Arrays.asList(new String[maxMessages]);
     this.peerRegistry = peerRegistry;
   }
 
   @Override
   public boolean add(final String received) {
     synchronized (this.messages) {
-      if (messages.size() == maxMessages) {
-        rotateBuffer();
-      }
+      int currentPosition = position.get();
+      int nextPosition = (currentPosition + 1) % maxMessages;
 
-      if (messages.size() == maxMessages) {
-        // after rotation, still no space, so return false for failed add
+      // if moving c would overwrite a peer's position, then data would be dropped, so fail
+      if (peerRegistry.positionOccupied(nextPosition)) {
         return false;
       } else {
-        messages.add(received);
-        // add succeeded, so return true
+        this.messages.set(currentPosition, received);
+        position.set(nextPosition);
         return true;
       }
     }
   }
 
   @Override
-  public Optional<String> get(final int messageIndex) {
+  public String get(final int messageIdx) {
     synchronized (this.messages) {
-      if (messageIndex < messages.size()) {
-        final String message;
-
-        message = messages.get(messageIndex);
-
-        return Optional.of(message);
-      } else {
-        return Optional.empty();
-      }
+      return messages.get(messageIdx);
     }
   }
 
   @Override
-  public Stream<String> getFrom(final int messageIndex) {
-    synchronized (this.messages) {
-      final List<String> messageBuffer =
-          new LinkedList<>(messages.subList(messageIndex, messages.size()));
-
-      return messageBuffer.stream();
-    }
+  public int position() {
+    return position.get();
   }
 
-  private void rotateBuffer() {
-    final var minimumRightExtent =
-        Math.min(peerRegistry.minPosition().orElse(maxMessages), maxMessages);
-
-    final var maximumRightExtent =
-        Math.max(peerRegistry.maxPosition().orElse(0), minimumRightExtent);
-
-    final var leftOver = new ArrayList<>(messages.subList(minimumRightExtent, maximumRightExtent));
-
-    messages.clear();
-    messages.addAll(leftOver);
-    peerRegistry.resetPositions();
+  @Override
+  public int size() {
+    return this.maxMessages;
   }
 }
