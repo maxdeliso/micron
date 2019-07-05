@@ -46,8 +46,7 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
         .values()
         .parallelStream()
         .map(Peer::position)
-        .collect(Collectors.toSet())
-        .contains(pos);
+        .anyMatch(position -> position == pos);
   }
 
   /**
