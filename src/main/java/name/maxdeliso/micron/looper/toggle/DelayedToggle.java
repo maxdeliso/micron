@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.Random;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -20,16 +21,22 @@ public class DelayedToggle implements Delayed {
 
   private final int mask;
 
+  private final Random random;
+
   public DelayedToggle(final AtomicReference<Selector> selectorAtomicReference,
                        final long delta,
                        final TimeUnit deltaUnit,
                        final SelectionKey selectionKey,
-                       final int mask) {
+                       final int mask,
+                       final Random random) {
     this.selectorAtomicReference = selectorAtomicReference;
-    final long deltaNanos = TimeUnit.NANOSECONDS.convert(delta, deltaUnit);
-    this.fireTime = System.nanoTime() + deltaNanos;
     this.selectionKey = selectionKey;
     this.mask = mask;
+    this.random = random;
+
+    final long deltaNanos = TimeUnit.NANOSECONDS.convert(delta, deltaUnit);
+
+    this.fireTime = System.nanoTime() + (deltaNanos + (random.nextLong() % deltaNanos) / 2);
   }
 
   public long fireTime() {

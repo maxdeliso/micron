@@ -27,10 +27,6 @@ public class SingleThreadedStreamingEventLooperTest {
 
   private static final int TEST_BUFFER_SIZE = 1;
 
-  private static final int TEST_ASYNC_ENABLE_MS = 1;
-
-  private static final Random random = new Random();
-
   private SingleThreadedStreamingEventLooper singleThreadedStreamingEventLooper;
 
   @Mock
@@ -45,13 +41,16 @@ public class SingleThreadedStreamingEventLooperTest {
   @Mock
   private DelayQueue<DelayedToggle> delayedToggles;
 
-  @Mock
   private Duration duration;
+
+  @Mock Random random;
 
   private TestSelectorProvider selectorProvider;
 
   @Before
   public void buildLooper() {
+    duration = Duration.ZERO;
+
     selectorProvider = new TestSelectorProvider();
 
     new SingleThreadedStreamingEventLooper(
@@ -62,7 +61,8 @@ public class SingleThreadedStreamingEventLooperTest {
         selectorProvider,
         ByteBuffer.allocateDirect(TEST_BUFFER_SIZE),
         delayedToggles,
-        duration
+        duration,
+        random
     );
   }
 

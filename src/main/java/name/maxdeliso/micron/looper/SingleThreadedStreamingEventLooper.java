@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executor;
@@ -31,7 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-public final class SingleThreadedStreamingEventLooper implements
+public class SingleThreadedStreamingEventLooper implements
     EventLooper,
     PeerCountingReadWriteSelector,
     NonBlockingAcceptorSelector {
@@ -50,7 +51,6 @@ public final class SingleThreadedStreamingEventLooper implements
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
   private final SerialReadHandler readHandler;
   private final SerialBufferingWriteHandler writeHandler;
-  private final DelayQueue<DelayedToggle> toggleDelayQueue;
 
   public SingleThreadedStreamingEventLooper(final SocketAddress socketAddress,
                                             final Charset messageCharset,
@@ -59,16 +59,17 @@ public final class SingleThreadedStreamingEventLooper implements
                                             final SelectorProvider selectorProvider,
                                             final ByteBuffer incomingBuffer,
                                             final DelayQueue<DelayedToggle> toggleDelayQueue,
-                                            final Duration asyncEnableDuration) {
+                                            final Duration asyncEnableDuration,
+                                            final Random random) {
     this.socketAddress = socketAddress;
     this.peerRegistry = peerRegistry;
     this.selectorProvider = selectorProvider;
-    this.toggleDelayQueue = toggleDelayQueue;
 
     this.selectionKeyToggleQueueAdder = new SelectionKeyToggleQueueAdder(
         asyncEnableDuration,
         selectorRef,
-        toggleDelayQueue);
+        toggleDelayQueue,
+        random);
 
     this.readHandler = new SerialReadHandler(
         incomingBuffer,
@@ -86,11 +87,6 @@ public final class SingleThreadedStreamingEventLooper implements
 
   @Override
   public void loop() throws IOException {
-    final var toggleExecutor = Executors.newSingleThreadExecutor();
-    final var delayToggler = new DelayedToggler(toggleDelayQueue);
-
-    toggleExecutor.execute(delayToggler);
-
     try (final var serverSocketChannel = selectorProvider.openServerSocketChannel();
          final var socketChannel = serverSocketChannel.bind(socketAddress);
          final var selector = selectorProvider.openSelector()) {

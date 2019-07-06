@@ -7,6 +7,7 @@ import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.time.Duration;
+import java.util.Random;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,6 +19,7 @@ public class SelectionKeyToggleQueueAdder implements ToggleQueueAdder {
   private final Duration enableDuration;
   private final AtomicReference<Selector> selectorAtomicReference;
   private final DelayQueue<DelayedToggle> toggleDelayQueue;
+  private final Random random;
 
   @Override
   public void disableAndEnqueueEnable(final SelectionKey key, final int mask) {
@@ -39,7 +41,8 @@ public class SelectionKeyToggleQueueAdder implements ToggleQueueAdder {
         enableDuration.getNano(),
         TimeUnit.NANOSECONDS,
         key,
-        mask);
+        mask,
+        random);
 
     toggleDelayQueue.add(delayedEnableToggle);
   }

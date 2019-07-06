@@ -3,6 +3,7 @@ package name.maxdeliso.micron;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.SingleThreadedStreamingEventLooper;
 import name.maxdeliso.micron.looper.toggle.DelayedToggle;
+import name.maxdeliso.micron.looper.toggle.DelayedToggler;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
 
@@ -12,31 +13,27 @@ import java.nio.ByteBuffer;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Random;
 import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Executors;
 
 @Slf4j
 final class Main {
 
+  /**
+   * Port to listen on.
+   */
   private static final int SERVER_PORT = 1337;
 
   /**
    * Maximum size of a single read operation.
-   * Messages larger than this size will be truncated.
    */
   private static final int BUFFER_SIZE = 512;
 
   /**
    * Maximum number of messages to hold in memory.
-   * When the threshold is hit, the minimum position
-   * of all currently connected peers is used to determine
-   * the subsection of messages that it's safe to discard.
    */
   private static final int MAX_MESSAGES = 1024;
-
-  /**
-   * How long to wait in between subsequent batches of non-zero returning writes
-   * or reads to a given peer, in milliseconds.
-   */
 
   public static void main(final String[] args) {
     final var peerRegistry = new InMemoryPeerRegistry();
@@ -49,6 +46,8 @@ final class Main {
 
     final var asyncEnableDuration = Duration.ofMillis(1);
 
+    final var random = new Random();
+
     final var looper =
         new SingleThreadedStreamingEventLooper(
             new InetSocketAddress(SERVER_PORT),
@@ -58,8 +57,14 @@ final class Main {
             SelectorProvider.provider(),
             incomingBuffer,
             toggleDelayQueue,
-            asyncEnableDuration
+            asyncEnableDuration,
+            random
         );
+
+    final var toggleExecutor = Executors.newSingleThreadExecutor();
+    final var delayToggler = new DelayedToggler(toggleDelayQueue);
+
+    toggleExecutor.execute(delayToggler);
 
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       try {
