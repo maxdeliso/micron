@@ -2,6 +2,7 @@ package name.maxdeliso.micron;
 
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.SingleThreadedStreamingEventLooper;
+import name.maxdeliso.micron.looper.toggle.DelayedToggle;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
 
@@ -10,7 +11,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.StandardCharsets;
-import java.util.Random;
+import java.time.Duration;
+import java.util.concurrent.DelayQueue;
 
 @Slf4j
 final class Main {
@@ -35,7 +37,6 @@ final class Main {
    * How long to wait in between subsequent batches of non-zero returning writes
    * or reads to a given peer, in milliseconds.
    */
-  private static final int ASYNC_ENABLE_TIMEOUT_MS = 1;
 
   public static void main(final String[] args) {
     final var peerRegistry = new InMemoryPeerRegistry();
@@ -44,7 +45,9 @@ final class Main {
 
     final var incomingBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
-    final var random = new Random();
+    final var toggleDelayQueue = new DelayQueue<DelayedToggle>();
+
+    final var asyncEnableDuration = Duration.ofMillis(1);
 
     final var looper =
         new SingleThreadedStreamingEventLooper(
@@ -54,8 +57,9 @@ final class Main {
             messageStore,
             SelectorProvider.provider(),
             incomingBuffer,
-            ASYNC_ENABLE_TIMEOUT_MS,
-            random);
+            toggleDelayQueue,
+            asyncEnableDuration
+        );
 
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       try {

@@ -1,5 +1,6 @@
 package name.maxdeliso.micron.looper;
 
+import name.maxdeliso.micron.looper.toggle.DelayedToggle;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.support.TestSelectorProvider;
@@ -15,8 +16,10 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.DelayQueue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SingleThreadedStreamingEventLooperTest {
@@ -39,6 +42,12 @@ public class SingleThreadedStreamingEventLooperTest {
   @Mock
   private RingBufferMessageStore messageStore;
 
+  @Mock
+  private DelayQueue<DelayedToggle> delayedToggles;
+
+  @Mock
+  private Duration duration;
+
   private TestSelectorProvider selectorProvider;
 
   @Before
@@ -52,8 +61,9 @@ public class SingleThreadedStreamingEventLooperTest {
         messageStore,
         selectorProvider,
         ByteBuffer.allocateDirect(TEST_BUFFER_SIZE),
-        TEST_ASYNC_ENABLE_MS,
-        random);
+        delayedToggles,
+        duration
+    );
   }
 
   private Thread buildStarterThread(final SingleThreadedStreamingEventLooper looper) {

@@ -2,7 +2,9 @@ package name.maxdeliso.micron.looper;
 
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.read.SerialReadHandler;
-import name.maxdeliso.micron.looper.toggler.SelectionKeyToggler;
+import name.maxdeliso.micron.looper.toggle.DelayedToggle;
+import name.maxdeliso.micron.looper.toggle.DelayedToggler;
+import name.maxdeliso.micron.looper.toggle.SelectionKeyToggleQueueAdder;
 import name.maxdeliso.micron.looper.write.SerialBufferingWriteHandler;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
@@ -18,9 +20,14 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
+import java.time.Duration;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
@@ -40,9 +47,10 @@ public final class SingleThreadedStreamingEventLooper implements
   private final AtomicReference<Selector> selectorRef
       = new AtomicReference<>();
 
-  private final SelectionKeyToggler selectionKeyToggler;
+  private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
   private final SerialReadHandler readHandler;
   private final SerialBufferingWriteHandler writeHandler;
+  private final DelayQueue<DelayedToggle> toggleDelayQueue;
 
   public SingleThreadedStreamingEventLooper(final SocketAddress socketAddress,
                                             final Charset messageCharset,
@@ -50,33 +58,39 @@ public final class SingleThreadedStreamingEventLooper implements
                                             final RingBufferMessageStore messageStore,
                                             final SelectorProvider selectorProvider,
                                             final ByteBuffer incomingBuffer,
-                                            final int asyncEnableTimeoutMs,
-                                            final Random random) {
+                                            final DelayQueue<DelayedToggle> toggleDelayQueue,
+                                            final Duration asyncEnableDuration) {
     this.socketAddress = socketAddress;
     this.peerRegistry = peerRegistry;
     this.selectorProvider = selectorProvider;
+    this.toggleDelayQueue = toggleDelayQueue;
 
-    this.selectionKeyToggler = new SelectionKeyToggler(
-        random,
-        asyncEnableTimeoutMs,
-        selectorRef);
+    this.selectionKeyToggleQueueAdder = new SelectionKeyToggleQueueAdder(
+        asyncEnableDuration,
+        selectorRef,
+        toggleDelayQueue);
 
     this.readHandler = new SerialReadHandler(
         incomingBuffer,
         messageCharset,
         peerRegistry,
         messageStore,
-        selectionKeyToggler);
+        selectionKeyToggleQueueAdder);
 
     this.writeHandler = new SerialBufferingWriteHandler(
         messageStore,
-        selectionKeyToggler,
+        selectionKeyToggleQueueAdder,
         peerRegistry,
         messageCharset);
   }
 
   @Override
   public void loop() throws IOException {
+    final var toggleExecutor = Executors.newSingleThreadExecutor();
+    final var delayToggler = new DelayedToggler(toggleDelayQueue);
+
+    toggleExecutor.execute(delayToggler);
+
     try (final var serverSocketChannel = selectorProvider.openServerSocketChannel();
          final var socketChannel = serverSocketChannel.bind(socketAddress);
          final var selector = selectorProvider.openSelector()) {
@@ -96,7 +110,7 @@ public final class SingleThreadedStreamingEventLooper implements
             handleAccept(
                 serverSocketChannel,
                 selector,
-                selectionKeyToggler,
+                selectionKeyToggleQueueAdder,
                 (channel, key) -> associatePeer(channel, key, peerRegistry));
           }
 

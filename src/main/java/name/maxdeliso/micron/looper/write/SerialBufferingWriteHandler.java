@@ -2,7 +2,7 @@ package name.maxdeliso.micron.looper.write;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import name.maxdeliso.micron.looper.toggler.SelectionKeyToggler;
+import name.maxdeliso.micron.looper.toggle.SelectionKeyToggleQueueAdder;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
@@ -17,7 +17,7 @@ import java.nio.charset.Charset;
 public class SerialBufferingWriteHandler implements WriteHandler {
 
   private final RingBufferMessageStore messageStore;
-  private final SelectionKeyToggler selectionKeyToggler;
+  private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
   private final PeerRegistry peerRegistry;
   private final Charset charset;
 
@@ -37,7 +37,7 @@ public class SerialBufferingWriteHandler implements WriteHandler {
 
       log.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);
 
-      selectionKeyToggler.asyncFlip(key, SelectionKey.OP_WRITE);
+      selectionKeyToggleQueueAdder.disableAndEnqueueEnable(key, SelectionKey.OP_WRITE);
     } catch (final IOException ioe) {
       peerRegistry.evictPeer(peer);
 
