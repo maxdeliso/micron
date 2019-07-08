@@ -1,5 +1,6 @@
 package name.maxdeliso.micron.looper;
 
+import name.maxdeliso.micron.looper.toggle.DelayedToggle;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.support.TestSelectorProvider;
@@ -15,18 +16,16 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.DelayQueue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SingleThreadedStreamingEventLooperTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedStreamingEventLooperTest.class);
 
   private static final int TEST_BUFFER_SIZE = 1;
-
-  private static final int TEST_ASYNC_ENABLE_MS = 1;
-
-  private static final Random random = new Random();
 
   private SingleThreadedStreamingEventLooper singleThreadedStreamingEventLooper;
 
@@ -39,10 +38,19 @@ public class SingleThreadedStreamingEventLooperTest {
   @Mock
   private RingBufferMessageStore messageStore;
 
+  @Mock
+  private DelayQueue<DelayedToggle> delayedToggles;
+
+  private Duration duration;
+
+  @Mock Random random;
+
   private TestSelectorProvider selectorProvider;
 
   @Before
   public void buildLooper() {
+    duration = Duration.ZERO;
+
     selectorProvider = new TestSelectorProvider();
 
     new SingleThreadedStreamingEventLooper(
@@ -52,8 +60,10 @@ public class SingleThreadedStreamingEventLooperTest {
         messageStore,
         selectorProvider,
         ByteBuffer.allocateDirect(TEST_BUFFER_SIZE),
-        TEST_ASYNC_ENABLE_MS,
-        random);
+        delayedToggles,
+        duration,
+        random
+    );
   }
 
   private Thread buildStarterThread(final SingleThreadedStreamingEventLooper looper) {

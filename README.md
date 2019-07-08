@@ -12,8 +12,7 @@
 * If, when receiving an event about a readable peer, the ring buffer's next cursor location would clobber **any** _p_, then the receive is not done.
 * Typically, a writable peer causes a new message to be written to that peer that it has not yet seen.
 * If, when receiving an event about a writable peer, writing to the peer would cause it to pass the cursor _c_, then the write is not done.
-* The executability of fork join tasks on the common fork join pool is used to selectively toggle interest in events per connected peer (this is subtle and needs a more thorough explanation).
-
+* Toggles of read/write/accept interest flags are done using a delay queue and a separate thread.
 ## Building
 
 ``mvn compile``
