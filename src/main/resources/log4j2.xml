@@ -2,13 +2,50 @@
 <Configuration status="WARN" strict="true">
     <Appenders>
         <Appender type="Console" name="STDOUT">
-            <Layout type="PatternLayout" pattern="%-5p [%t][%d{UNIX_MILLIS}]: %m%n"/>
+            <Layout type="PatternLayout" pattern="%-5p [%t][%d{dd MMM yyyy HH:mm:ss,nnnnnnn}]: %m%n"/>
         </Appender>
+
+        <RollingFile
+                name="APPLICATION"
+                fileName="logs/application.log"
+                filePattern="logs/application.%d{dd-MMM}.log.gz"
+                ignoreExceptions="false">
+            <PatternLayout>
+                <Pattern>%-5p [%t][%d{dd MMM yyyy HH:mm:ss,nnnnnnn}]: %m%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <OnStartupTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="512 MB" />
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy max="5" />
+        </RollingFile>
+
+        <RollingFile
+                name="METRICS"
+                fileName="logs/metrics.log"
+                filePattern="logs/metrics.%d{dd-MMM}.log.gz"
+                ignoreExceptions="true">
+            <PatternLayout>
+                <Pattern>%d{dd MMM yyyy HH:mm:ss,nnnnnnn} %m %n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <OnStartupTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="512 MB" />
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy max="5" />
+        </RollingFile>
     </Appenders>
 
     <Loggers>
         <Root level="INFO">
             <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="APPLICATION"/>
         </Root>
+
+        <Logger name="name.maxdeliso.micron.metrics" additivity="false">
+            <AppenderRef ref="METRICS"/>
+        </Logger>
     </Loggers>
 </Configuration>

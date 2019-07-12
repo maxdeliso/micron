@@ -63,4 +63,9 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
       peerMap.remove(peer.getIndex());
     }
   }
+
+  @Override
+  public long size() {
+    return peerMap.size();
+  }
 }

@@ -1,6 +1,8 @@
 package name.maxdeliso.micron.selector;
 
 import name.maxdeliso.micron.looper.toggle.SelectionKeyToggleQueueAdder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -40,5 +42,11 @@ public interface NonBlockingAcceptorSelector {
         .register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 
     peerConsumer.accept(socketChannel, peerKey);
+
+    LogHolder.LOGGER.info("accepted new connection with peer key: {}", peerKey);
   }
+}
+
+final class LogHolder {
+  static final Logger LOGGER = LoggerFactory.getLogger(NonBlockingAcceptorSelector.class);
 }

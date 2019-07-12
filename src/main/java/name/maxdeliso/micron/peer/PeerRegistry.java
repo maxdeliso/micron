@@ -11,4 +11,6 @@ public interface PeerRegistry {
   boolean positionOccupied(int pos);
 
   void evictPeer(Peer peer);
+
+  long size();
 }

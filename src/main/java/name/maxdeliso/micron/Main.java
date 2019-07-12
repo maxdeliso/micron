@@ -1,11 +1,14 @@
 package name.maxdeliso.micron;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Slf4jReporter;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.SingleThreadedStreamingEventLooper;
 import name.maxdeliso.micron.looper.toggle.DelayedToggle;
 import name.maxdeliso.micron.looper.toggle.DelayedToggler;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,6 +19,7 @@ import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 final class Main {
@@ -44,9 +48,19 @@ final class Main {
 
     final var toggleDelayQueue = new DelayQueue<DelayedToggle>();
 
-    final var asyncEnableDuration = Duration.ofMillis(1);
+    final var asyncEnableDuration = Duration.ofNanos(1000);
 
     final var random = new Random();
+
+    final var metrics = new MetricRegistry();
+
+    final var reporter = Slf4jReporter.forRegistry(metrics)
+        .outputTo(LoggerFactory.getLogger("name.maxdeliso.micron.metrics"))
+        .convertRatesTo(TimeUnit.SECONDS)
+        .convertDurationsTo(TimeUnit.NANOSECONDS)
+        .build();
+
+    reporter.start(1, TimeUnit.SECONDS);
 
     final var looper =
         new SingleThreadedStreamingEventLooper(
@@ -58,6 +72,7 @@ final class Main {
             incomingBuffer,
             toggleDelayQueue,
             asyncEnableDuration,
+            metrics,
             random
         );
 

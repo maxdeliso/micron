@@ -22,6 +22,8 @@
 
 ``mvn clean compile exec:java``
 
+Note: requires Java 11
+
 ## Testing
 
 1. run main
