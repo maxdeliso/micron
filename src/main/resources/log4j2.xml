@@ -2,7 +2,7 @@
 <Configuration status="WARN" strict="true">
     <Appenders>
         <Appender type="Console" name="STDOUT">
-            <Layout type="PatternLayout" pattern="%-5p [%t][%d{UNIX_MILLIS}]: %m%n"/>
+            <Layout type="PatternLayout" pattern="%-5p [%t][%d{dd MMM yyyy HH:mm:ss,nnnnnnn}]: %m%n"/>
         </Appender>
     </Appenders>
 
