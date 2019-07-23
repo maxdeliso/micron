@@ -26,25 +26,18 @@ public class SingleThreadedStreamingEventLooperTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedStreamingEventLooperTest.class);
 
   private static final int TEST_BUFFER_SIZE = 1;
-
+  @Mock
+  Random random;
   private SingleThreadedStreamingEventLooper singleThreadedStreamingEventLooper;
-
   @Mock
   private SocketAddress socketAddress;
-
   @Mock
   private PeerRegistry peerRegistry;
-
   @Mock
   private RingBufferMessageStore messageStore;
-
   @Mock
   private DelayQueue<DelayedToggle> delayedToggles;
-
   private Duration duration;
-
-  @Mock Random random;
-
   private TestSelectorProvider selectorProvider;
 
   @Before

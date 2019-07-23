@@ -3,7 +3,6 @@ package name.maxdeliso.micron.looper;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.read.SerialReadHandler;
 import name.maxdeliso.micron.looper.toggle.DelayedToggle;
-import name.maxdeliso.micron.looper.toggle.DelayedToggler;
 import name.maxdeliso.micron.looper.toggle.SelectionKeyToggleQueueAdder;
 import name.maxdeliso.micron.looper.write.SerialBufferingWriteHandler;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
@@ -21,14 +20,10 @@ import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.time.Duration;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
@@ -52,6 +47,18 @@ public class SingleThreadedStreamingEventLooper implements
   private final SerialReadHandler readHandler;
   private final SerialBufferingWriteHandler writeHandler;
 
+  /**
+   * Build a single threaded threaded streaming event looper.
+   * @param socketAddress address to listen on.
+   * @param messageCharset message charset to use.
+   * @param peerRegistry a peer registry instance.
+   * @param messageStore a message store instance.
+   * @param selectorProvider a provider of selectors.
+   * @param incomingBuffer a single shared buffer for incoming messages.
+   * @param toggleDelayQueue a delay queue of toggle events.
+   * @param asyncEnableDuration the duration to re-enable i/o operations for.
+   * @param random an RNG.
+   */
   public SingleThreadedStreamingEventLooper(final SocketAddress socketAddress,
                                             final Charset messageCharset,
                                             final PeerRegistry peerRegistry,

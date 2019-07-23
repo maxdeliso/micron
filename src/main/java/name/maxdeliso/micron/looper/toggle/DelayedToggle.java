@@ -23,6 +23,16 @@ public class DelayedToggle implements Delayed {
 
   private final Random random;
 
+  /**
+   * Build a delayed toggler.
+   *
+   * @param selectorAtomicReference a reference to a selector to wake up.
+   * @param delta how long to wait after the current time to toggle.
+   * @param deltaUnit the time unit.
+   * @param selectionKey the selection key to re-enable after the time interval.
+   * @param mask the flag to flip after the time interval.
+   * @param random an RNG for the jitter.
+   */
   public DelayedToggle(final AtomicReference<Selector> selectorAtomicReference,
                        final long delta,
                        final TimeUnit deltaUnit,
@@ -62,6 +72,9 @@ public class DelayedToggle implements Delayed {
     return Math.toIntExact(fireDifference);
   }
 
+  /**
+   * Perform the toggle operation, to flip the interest ops, after a delay.
+   */
   public void toggle() {
     try {
       selectionKey.interestOpsOr(mask);
