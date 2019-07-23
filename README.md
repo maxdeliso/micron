@@ -13,9 +13,14 @@
 * Typically, a writable peer causes a new message to be written to that peer that it has not yet seen.
 * If, when receiving an event about a writable peer, writing to the peer would cause it to pass the cursor _c_, then the write is not done.
 * Toggles of read/write/accept interest flags are done using a delay queue and a separate thread.
+
 ## Building
 
 ``mvn compile``
+
+## Running Locally
+
+``mvn clean compile exec:java``
 
 ## Testing
 

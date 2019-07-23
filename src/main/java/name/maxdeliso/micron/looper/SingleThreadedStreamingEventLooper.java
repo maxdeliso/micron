@@ -99,9 +99,10 @@ public class SingleThreadedStreamingEventLooper implements
          final var selector = selectorProvider.openSelector()) {
       selectorRef.set(selector);
       serverSocketChannelRef.set(serverSocketChannel);
-
       serverSocketChannel.configureBlocking(false);
       socketChannel.register(selector, SelectionKey.OP_ACCEPT);
+
+      log.info("bound to {}, entering event loop", socketAddress);
 
       while (serverSocketChannel.isOpen()) {
         selector.select();
