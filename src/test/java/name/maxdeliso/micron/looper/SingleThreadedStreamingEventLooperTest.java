@@ -1,5 +1,7 @@
 package name.maxdeliso.micron.looper;
 
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricRegistry;
 import name.maxdeliso.micron.looper.toggle.DelayedToggle;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
@@ -26,6 +28,9 @@ public class SingleThreadedStreamingEventLooperTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedStreamingEventLooperTest.class);
 
   private static final int TEST_BUFFER_SIZE = 1;
+
+  @Mock
+  MetricRegistry metricRegistry;
   @Mock
   Random random;
   private SingleThreadedStreamingEventLooper singleThreadedStreamingEventLooper;
@@ -55,6 +60,7 @@ public class SingleThreadedStreamingEventLooperTest {
         ByteBuffer.allocateDirect(TEST_BUFFER_SIZE),
         delayedToggles,
         duration,
+        metricRegistry,
         random
     );
   }

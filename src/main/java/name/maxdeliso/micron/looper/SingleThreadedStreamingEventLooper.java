@@ -1,5 +1,8 @@
 package name.maxdeliso.micron.looper;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.read.SerialReadHandler;
 import name.maxdeliso.micron.looper.toggle.DelayedToggle;
@@ -46,6 +49,9 @@ public class SingleThreadedStreamingEventLooper implements
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
   private final SerialReadHandler readHandler;
   private final SerialBufferingWriteHandler writeHandler;
+  private final MetricRegistry metrics;
+
+  private final Meter events;
 
   /**
    * Build a single threaded threaded streaming event looper.
@@ -57,6 +63,7 @@ public class SingleThreadedStreamingEventLooper implements
    * @param incomingBuffer a single shared buffer for incoming messages.
    * @param toggleDelayQueue a delay queue of toggle events.
    * @param asyncEnableDuration the duration to re-enable i/o operations for.
+   * @param metrics capture metrics about performance.
    * @param random an RNG.
    */
   public SingleThreadedStreamingEventLooper(final SocketAddress socketAddress,
@@ -67,10 +74,16 @@ public class SingleThreadedStreamingEventLooper implements
                                             final ByteBuffer incomingBuffer,
                                             final DelayQueue<DelayedToggle> toggleDelayQueue,
                                             final Duration asyncEnableDuration,
+                                            final MetricRegistry metrics,
                                             final Random random) {
     this.socketAddress = socketAddress;
     this.peerRegistry = peerRegistry;
     this.selectorProvider = selectorProvider;
+    this.metrics = metrics;
+
+    this.events = this.metrics.meter("events");
+
+    metrics.register("peers", (Gauge<Long>) peerRegistry::size);
 
     this.selectionKeyToggleQueueAdder = new SelectionKeyToggleQueueAdder(
         asyncEnableDuration,
@@ -125,7 +138,7 @@ public class SingleThreadedStreamingEventLooper implements
                 selectedKey,
                 peerRegistry,
                 (selectionKey, peer) -> {
-                  if (!this.writeHandler.handleWritablePeer(selectedKey, peer)) {
+                  if (!writeHandler.handleWritablePeer(selectedKey, peer)) {
                     log.trace("no message written to peer: {}", peer);
                   }
                 }
@@ -145,6 +158,8 @@ public class SingleThreadedStreamingEventLooper implements
                 });
           }
         } // for
+
+        events.mark();
       } // while
     } finally {
       latch.countDown();
