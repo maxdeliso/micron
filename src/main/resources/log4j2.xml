@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN" strict="true">
     <Properties>
-        <Property name="nanoPattern">%-5p [%t][%d{dd MMM yyyy HH:mm:ss,nnnnnnnnn}{UTC}]: %m%n</Property>
+        <Property name="nanoPattern">%d{yyyy-MM-dd'T'HH:mm:ss,nnnnnnnnnXXX}{UTC}</Property>
     </Properties>
     <Appenders>
         <Appender type="Console" name="STDOUT">
-            <Layout type="PatternLayout" pattern="${nanoPattern}"/>
+            <Layout type="PatternLayout" pattern="%-5p [%t][${nanoPattern}]: %m%n"/>
         </Appender>
 
         <RollingFile
@@ -14,7 +14,7 @@
                 filePattern="logs/application.%d{dd-MMM}.log.gz"
                 ignoreExceptions="false">
             <PatternLayout>
-                <Pattern>${nanoPattern}</Pattern>
+                <Pattern>%-5p [%t][${nanoPattern}]: %m%n</Pattern>
             </PatternLayout>
             <Policies>
                 <OnStartupTriggeringPolicy />
@@ -30,7 +30,7 @@
                 filePattern="logs/metrics.%d{dd-MMM}.log.gz"
                 ignoreExceptions="true">
             <PatternLayout>
-                <Pattern>${nanoPattern}</Pattern>
+                <Pattern>${nanoPattern} %m%n</Pattern>
             </PatternLayout>
             <Policies>
                 <OnStartupTriggeringPolicy />
