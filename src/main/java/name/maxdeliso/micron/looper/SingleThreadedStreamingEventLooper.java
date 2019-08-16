@@ -48,7 +48,10 @@ public class SingleThreadedStreamingEventLooper implements
   private final SerialReadHandler readHandler;
   private final SerialBufferingWriteHandler writeHandler;
 
-  private final Meter events;
+  private final Meter eventsMeter;
+  private final Meter acceptEventsMeter;
+  private final Meter writeEventsMeter;
+  private final Meter readEventsMeter;
 
   /**
    * Build a single threaded threaded streaming event looper.
@@ -76,7 +79,10 @@ public class SingleThreadedStreamingEventLooper implements
     this.peerRegistry = peerRegistry;
     this.selectorProvider = selectorProvider;
 
-    this.events = metrics.meter("events");
+    this.eventsMeter = metrics.meter("events");
+    this.acceptEventsMeter = metrics.meter("accept_events");
+    this.writeEventsMeter = metrics.meter("write_events");
+    this.readEventsMeter = metrics.meter("read_events");
 
     metrics.register("peers", (Gauge<Long>) peerRegistry::size);
 
@@ -123,6 +129,8 @@ public class SingleThreadedStreamingEventLooper implements
                 selector,
                 selectionKeyToggleQueueAdder,
                 (channel, key) -> associatePeer(channel, key, peerRegistry));
+
+            acceptEventsMeter.mark();
           }
 
           if (selectedKey.isValid()
@@ -136,6 +144,8 @@ public class SingleThreadedStreamingEventLooper implements
                     log.trace("no message read from peer: {}", peer);
                   }
                 });
+
+	    readEventsMeter.mark();
           }
 
           if (selectedKey.isValid()
@@ -150,10 +160,12 @@ public class SingleThreadedStreamingEventLooper implements
                   }
                 }
             );
+
+            writeEventsMeter.mark();
           }
         } // for
 
-        events.mark();
+        eventsMeter.mark();
       } // while
     } finally {
       latch.countDown();
