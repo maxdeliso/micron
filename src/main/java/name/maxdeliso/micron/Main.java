@@ -21,6 +21,8 @@ import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 @Slf4j
 final class Main {
 
@@ -76,7 +78,21 @@ final class Main {
             random
         );
 
-    final var toggleExecutor = Executors.newSingleThreadExecutor();
+    final var toggleExecutor = Executors.newSingleThreadExecutor(
+        new ThreadFactoryBuilder()
+            .setNameFormat("delay-queue-%d")
+            .setUncaughtExceptionHandler(
+                (thread, throwable) -> {
+                  log.error("delay queue thread {} failed", thread, throwable);
+
+                  try {
+                    looper.halt();
+                  } catch (InterruptedException ie) {
+                    interruptFailure(ie);
+                  }
+                }
+            ).build());
+
     final var delayToggler = new DelayedToggler(toggleDelayQueue);
 
     toggleExecutor.execute(delayToggler);
@@ -87,7 +103,7 @@ final class Main {
 
         looper.halt();
       } catch (final InterruptedException ie) {
-        log.warn("exception while halting looper", ie);
+        interruptFailure(ie);
       }
     }));
 
@@ -96,5 +112,11 @@ final class Main {
     } catch (final IOException ioe) {
       log.error("terminated exceptionally", ioe);
     }
+  }
+
+  private static void interruptFailure(final InterruptedException ie) {
+    Thread.currentThread().interrupt();
+    log.error("interrupted", ie);
+    throw new RuntimeException(ie);
   }
 }
