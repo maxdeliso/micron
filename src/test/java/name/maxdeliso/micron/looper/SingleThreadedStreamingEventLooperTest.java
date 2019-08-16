@@ -1,7 +1,13 @@
 package name.maxdeliso.micron.looper;
 
-import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.concurrent.DelayQueue;
 import name.maxdeliso.micron.looper.toggle.DelayedToggle;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
@@ -14,15 +20,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.Random;
-import java.util.concurrent.DelayQueue;
-
 @RunWith(MockitoJUnitRunner.class)
 public class SingleThreadedStreamingEventLooperTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedStreamingEventLooperTest.class);
@@ -31,19 +28,24 @@ public class SingleThreadedStreamingEventLooperTest {
 
   @Mock
   MetricRegistry metricRegistry;
-  @Mock
-  Random random;
-  private SingleThreadedStreamingEventLooper singleThreadedStreamingEventLooper;
+
   @Mock
   private SocketAddress socketAddress;
+
   @Mock
   private PeerRegistry peerRegistry;
+
   @Mock
   private RingBufferMessageStore messageStore;
+
   @Mock
   private DelayQueue<DelayedToggle> delayedToggles;
+
   private Duration duration;
+
   private TestSelectorProvider selectorProvider;
+
+  private SingleThreadedStreamingEventLooper singleThreadedStreamingEventLooper;
 
   @Before
   public void buildLooper() {
@@ -60,8 +62,7 @@ public class SingleThreadedStreamingEventLooperTest {
         ByteBuffer.allocateDirect(TEST_BUFFER_SIZE),
         delayedToggles,
         duration,
-        metricRegistry,
-        random
+        metricRegistry
     );
   }
 

@@ -1,17 +1,16 @@
 package name.maxdeliso.micron.looper.read;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.charset.Charset;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.toggle.SelectionKeyToggleQueueAdder;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.charset.Charset;
-import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -46,10 +45,7 @@ public class SerialReadHandler implements ReadHandler {
 
     selectionKeyToggleQueueAdder.disableAndEnqueueEnable(key, SelectionKey.OP_READ);
 
-    return Optional
-        .ofNullable(incoming)
-        .map(messageStore::add)
-        .orElse(false);
+    return Optional.ofNullable(incoming).map(messageStore::add).orElse(false);
   }
 
   private PeerReadResult performRead(final Peer peer) {
@@ -87,10 +83,6 @@ public class SerialReadHandler implements ReadHandler {
       }
     }
 
-    return PeerReadResult
-        .builder()
-        .bytesReadTotal(bytesReadTotal)
-        .readCalls(readCalls)
-        .build();
+    return PeerReadResult.builder().bytesReadTotal(bytesReadTotal).readCalls(readCalls).build();
   }
 }

@@ -1,14 +1,15 @@
 package name.maxdeliso.micron.peer;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import net.jcip.annotations.ThreadSafe;
-
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import name.maxdeliso.micron.message.RingBufferMessageStore;
+import name.maxdeliso.micron.slots.SlotManager;
+import net.jcip.annotations.ThreadSafe;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -19,9 +20,17 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
 
   private final ConcurrentHashMap<Integer, Peer> peerMap;
 
-  public InMemoryPeerRegistry() {
+  private final RingBufferMessageStore ringBufferMessageStore;
+
+  private final SlotManager slotManager;
+
+  public InMemoryPeerRegistry(
+      SlotManager slotManager,
+      RingBufferMessageStore ringBufferMessageStore) {
     this.peerCounter = new AtomicInteger();
     this.peerMap = new ConcurrentHashMap<>();
+    this.slotManager = slotManager;
+    this.ringBufferMessageStore = ringBufferMessageStore;
   }
 
   @Override
@@ -32,20 +41,20 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
   @Override
   public Peer allocatePeer(final SocketChannel socketChannel) {
     final var newPeerNumber = peerCounter.get();
-    final var newPeer = new Peer(newPeerNumber, socketChannel);
+
+    /*
+     * the "caught-up" logic states that a peer is caught up when it has reached the current
+     * position, so by setting the initial position to the current one plus one, the new peer may
+     * be able to read the entire ring buffer by reading new messages, so long as reading events
+     * are prioritized over writes
+     */
+    final var initialPosition = (ringBufferMessageStore.position() + 1)
+        % ringBufferMessageStore.size();
+    final var newPeer = new Peer(newPeerNumber, initialPosition, socketChannel, slotManager);
 
     peerMap.put(newPeerNumber, newPeer);
     peerCounter.incrementAndGet();
     return newPeer;
-  }
-
-  @Override
-  public boolean positionOccupied(int pos) {
-    return peerMap
-        .values()
-        .parallelStream()
-        .map(Peer::position)
-        .anyMatch(position -> position == pos);
   }
 
   /**
@@ -58,9 +67,10 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
     try {
       peer.getSocketChannel().close();
     } catch (final IOException ioe) {
-      log.warn("failed to close channel during peer eviction", ioe);
+      log.warn("failed to close channel during peer eviction of {}", peer, ioe);
     } finally {
       peerMap.remove(peer.getIndex());
+      slotManager.decrementOccupants(peer.getPosition().get());
     }
   }
 

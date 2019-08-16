@@ -1,58 +1,53 @@
 package name.maxdeliso.micron.message;
 
-import lombok.RequiredArgsConstructor;
-import name.maxdeliso.micron.peer.PeerRegistry;
-import net.jcip.annotations.ThreadSafe;
-
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import name.maxdeliso.micron.slots.SlotManager;
+import net.jcip.annotations.ThreadSafe;
 
+@Slf4j
 @RequiredArgsConstructor
 @ThreadSafe
 public final class InMemoryMessageStore implements RingBufferMessageStore {
 
-  private final int maxMessages;
-
   private final List<String> messages;
-
-  private final PeerRegistry peerRegistry;
 
   private final AtomicInteger position = new AtomicInteger(0);
 
-  /**
-   * Construct an in memory message store.
-   *
-   * @param maxMessages  the total number of events to hold in memory at once.
-   * @param peerRegistry a registry of peers.
-   */
-  public InMemoryMessageStore(final int maxMessages, final PeerRegistry peerRegistry) {
-    this.maxMessages = maxMessages;
-    this.messages = Arrays.asList(new String[maxMessages]);
-    this.peerRegistry = peerRegistry;
+  private final SlotManager slotManager;
+
+  public InMemoryMessageStore(final SlotManager slotManager) {
+    this.messages = Arrays.asList(new String[slotManager.size()]);
+    this.slotManager = slotManager;
   }
 
   @Override
   public boolean add(final String received) {
     synchronized (this.messages) {
       int currentPosition = position.get();
-      int nextPosition = (currentPosition + 1) % maxMessages;
+      int nextPosition = (currentPosition + 1) % this.messages.size();
 
       // if moving c would overwrite a peer's position, then data would be dropped, so fail
-      if (peerRegistry.positionOccupied(nextPosition)) {
+      if (slotManager.positionOccupied(nextPosition)) {
+        log.warn("dropping message of length {} at position {} due to overflow",
+            received.length(), nextPosition);
         return false;
       } else {
         this.messages.set(currentPosition, received);
-        position.set(nextPosition);
+        position.set(nextPosition); // update position of ring buffer message store
         return true;
       }
     }
   }
 
   @Override
-  public String get(final int messageIdx) {
+  public Optional<String> get(final int messageIdx) {
     synchronized (this.messages) {
-      return messages.get(messageIdx);
+      return Optional.ofNullable(messages.get(messageIdx));
     }
   }
 
@@ -63,6 +58,6 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
 
   @Override
   public int size() {
-    return this.maxMessages;
+    return this.messages.size();
   }
 }

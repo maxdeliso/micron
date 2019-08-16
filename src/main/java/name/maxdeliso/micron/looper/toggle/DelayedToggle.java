@@ -1,14 +1,13 @@
 package name.maxdeliso.micron.looper.toggle;
 
-import lombok.extern.slf4j.Slf4j;
-
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.Random;
+import java.time.Duration;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DelayedToggle implements Delayed {
@@ -21,36 +20,23 @@ public class DelayedToggle implements Delayed {
 
   private final int mask;
 
-  private final Random random;
-
   /**
-   * Build a delayed toggler.
+   * Build a delay toggle.
    *
-   * @param selectorAtomicReference a reference to a selector to wake up.
-   * @param delta how long to wait after the current time to toggle.
-   * @param deltaUnit the time unit.
-   * @param selectionKey the selection key to re-enable after the time interval.
-   * @param mask the flag to flip after the time interval.
-   * @param random an RNG for the jitter.
+   * @param selectorAtomicReference reference to a selector.
+   * @param toggleDuration          how long to wait to perform the toggle.
+   * @param selectionKey            the key to toggle.
+   * @param mask                    the mask to toggle with.
    */
   public DelayedToggle(final AtomicReference<Selector> selectorAtomicReference,
-                       final long delta,
-                       final TimeUnit deltaUnit,
+                       final Duration toggleDuration,
                        final SelectionKey selectionKey,
-                       final int mask,
-                       final Random random) {
+                       final int mask) {
     this.selectorAtomicReference = selectorAtomicReference;
     this.selectionKey = selectionKey;
     this.mask = mask;
-    this.random = random;
-
-    final long deltaNanos = TimeUnit.NANOSECONDS.convert(delta, deltaUnit);
-
-    this.fireTime = System.nanoTime() + (deltaNanos + (random.nextLong() % deltaNanos) / 2);
-  }
-
-  public long fireTime() {
-    return this.fireTime;
+    final long deltaNanos = toggleDuration.toNanos();
+    this.fireTime = System.nanoTime() + deltaNanos;
   }
 
   @Override
@@ -61,15 +47,11 @@ public class DelayedToggle implements Delayed {
 
   @Override
   public int compareTo(final Delayed other) {
-    final long fireDifference;
-
     if (other instanceof DelayedToggle) {
-      fireDifference = fireTime - ((DelayedToggle) other).fireTime;
+      return Long.compare(fireTime, ((DelayedToggle) other).fireTime);
     } else {
-      fireDifference = getDelay(TimeUnit.NANOSECONDS) - other.getDelay(TimeUnit.NANOSECONDS);
+      return Long.compare(getDelay(TimeUnit.NANOSECONDS), other.getDelay(TimeUnit.NANOSECONDS));
     }
-
-    return Math.toIntExact(fireDifference);
   }
 
   /**

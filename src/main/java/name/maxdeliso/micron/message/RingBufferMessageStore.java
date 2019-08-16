@@ -1,9 +1,11 @@
 package name.maxdeliso.micron.message;
 
+import java.util.Optional;
+
 public interface RingBufferMessageStore {
   boolean add(String received);
 
-  String get(int messageIdx);
+  Optional<String> get(int messageIdx);
 
   int position();
 

@@ -8,8 +8,6 @@ public interface PeerRegistry {
 
   Peer allocatePeer(SocketChannel clientChannel);
 
-  boolean positionOccupied(int pos);
-
   void evictPeer(Peer peer);
 
   long size();

@@ -1,15 +1,19 @@
 package name.maxdeliso.micron.message;
 
 import name.maxdeliso.micron.peer.PeerRegistry;
+import name.maxdeliso.micron.slots.SlotManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static junit.framework.TestCase.assertNull;
+import java.util.Optional;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -19,30 +23,39 @@ public class InMemoryMessageStoreTest {
 
   private static final String TEST_MESSAGE = "test-message";
 
+  private static final Integer TEST_SIZE = 8;
+
   @Mock
   private PeerRegistry peerRegistry;
+
+  @Mock
+  private SlotManager slotManager;
 
   private RingBufferMessageStore messageStore;
 
   @Before
-  public void buildMessageStore() {
-    messageStore = new InMemoryMessageStore(TEST_MESSAGE_COUNT, peerRegistry);
+  public void setup() {
+    when(slotManager.size()).thenReturn(TEST_SIZE);
+    when(slotManager.positionOccupied(anyInt())).thenReturn(false);
+
+    messageStore = new InMemoryMessageStore(slotManager);
   }
 
   @Test
   public void testPutGet() {
     messageStore.add(TEST_MESSAGE);
 
-    final String message = messageStore.get(0);
+    final Optional<String> messageOpt = messageStore.get(0);
 
-    assertEquals(message, TEST_MESSAGE);
+    assertTrue(messageOpt.isPresent());
+    assertEquals(messageOpt.get(), TEST_MESSAGE);
   }
 
   @Test
   public void testEmptyGet() {
-    final String message = messageStore.get(0);
+    final Optional<String> messageOpt = messageStore.get(0);
 
-    assertNull(message);
+    assertTrue(messageOpt.isEmpty());
   }
 
   @Test
@@ -53,12 +66,12 @@ public class InMemoryMessageStoreTest {
     }
 
     // the last write should wrap around to the beginning
-    assertEquals(messageStore.get(0), String.valueOf(TEST_MESSAGE_COUNT));
+    assertEquals(messageStore.get(0).get(), String.valueOf(TEST_MESSAGE_COUNT));
   }
 
   @Test
   public void testMultipleProducerOverflow() {
-    when(peerRegistry.positionOccupied(1)).thenReturn(true);
+    when(slotManager.positionOccupied(1)).thenReturn(true);
 
     assertFalse(messageStore.add("not-added"));
   }
