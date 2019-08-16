@@ -123,7 +123,7 @@ public class SingleThreadedStreamingEventLooper implements
         for (final var selectedKey : selector.selectedKeys()) {
           if (selectedKey.isValid()
               && selectedKey.isAcceptable()
-              && ((selectedKey.interestOps() & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT)) {
+              && maskOpSet(selectedKey, SelectionKey.OP_ACCEPT)) {
             handleAccept(
                 serverSocketChannel,
                 selector,
@@ -135,7 +135,7 @@ public class SingleThreadedStreamingEventLooper implements
 
           if (selectedKey.isValid()
               && selectedKey.isReadable()
-              && ((selectedKey.interestOps() & SelectionKey.OP_READ) == SelectionKey.OP_READ)) {
+              && maskOpSet(selectedKey, SelectionKey.OP_READ)) {
             handleReadableKey(
                 selectedKey,
                 peerRegistry,
@@ -150,7 +150,7 @@ public class SingleThreadedStreamingEventLooper implements
 
           if (selectedKey.isValid()
               && selectedKey.isWritable()
-              && ((selectedKey.interestOps() & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE)) {
+              && maskOpSet(selectedKey, SelectionKey.OP_WRITE)) {
             handleWritableKey(
                 selectedKey,
                 peerRegistry,
@@ -197,5 +197,9 @@ public class SingleThreadedStreamingEventLooper implements
     log.info("awaiting countdown latch");
     latch.await();
     log.info("halt completed");
+  }
+
+  private boolean maskOpSet(final SelectionKey selectionKey, final int mask) {
+    return (selectionKey.interestOps() & mask) == mask;
   }
 }
