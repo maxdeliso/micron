@@ -13,7 +13,7 @@ import name.maxdeliso.micron.peer.PeerRegistry;
 
 @Slf4j
 @RequiredArgsConstructor
-public class SerialBufferingWriteHandler implements WriteHandler {
+public class SerialWriteHandler implements WriteHandler {
 
   private final RingBufferMessageStore messageStore;
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
@@ -22,6 +22,8 @@ public class SerialBufferingWriteHandler implements WriteHandler {
 
   @Override
   public boolean handleWritablePeer(final SelectionKey key, final Peer peer) {
+    selectionKeyToggleQueueAdder.disableAndEnqueueEnableInterest(key, SelectionKey.OP_WRITE);
+
     if (peer.position() == messageStore.position()) {
       log.trace("nothing to write, peer {} is caught up", peer);
       return false;
@@ -44,8 +46,6 @@ public class SerialBufferingWriteHandler implements WriteHandler {
       final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
 
       log.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);
-
-      selectionKeyToggleQueueAdder.disableAndEnqueueEnable(key, SelectionKey.OP_WRITE);
     } catch (final IOException ioe) {
       peerRegistry.evictPeer(peer);
 

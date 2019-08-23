@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.read.SerialReadHandler;
 import name.maxdeliso.micron.looper.toggle.DelayedToggle;
 import name.maxdeliso.micron.looper.toggle.SelectionKeyToggleQueueAdder;
-import name.maxdeliso.micron.looper.write.SerialBufferingWriteHandler;
+import name.maxdeliso.micron.looper.write.SerialWriteHandler;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
@@ -46,7 +46,7 @@ public class SingleThreadedStreamingEventLooper implements
 
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
   private final SerialReadHandler readHandler;
-  private final SerialBufferingWriteHandler writeHandler;
+  private final SerialWriteHandler writeHandler;
 
   private final Meter eventsMeter;
   private final Meter acceptEventsMeter;
@@ -98,7 +98,7 @@ public class SingleThreadedStreamingEventLooper implements
         messageStore,
         selectionKeyToggleQueueAdder);
 
-    this.writeHandler = new SerialBufferingWriteHandler(
+    this.writeHandler = new SerialWriteHandler(
         messageStore,
         selectionKeyToggleQueueAdder,
         peerRegistry,

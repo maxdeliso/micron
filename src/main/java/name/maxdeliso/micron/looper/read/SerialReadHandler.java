@@ -24,65 +24,53 @@ public class SerialReadHandler implements ReadHandler {
 
   @Override
   public boolean handleReadablePeer(final SelectionKey key, final Peer peer) {
-    final PeerReadResult peerReadResult = performRead(peer);
+    selectionKeyToggleQueueAdder.disableAndEnqueueEnableInterest(key, SelectionKey.OP_READ);
+
+    final int bytesRead = performRead(peer);
     final String incoming;
 
-    if (peerReadResult.getBytesReadTotal() == 0) {
+    if (bytesRead == 0) {
       incoming = null;
 
       log.trace("read no bytes from peer {}", peer);
     } else {
-      log.trace("read {} bytes from peer {} in {} operations",
-          peerReadResult.getBytesReadTotal(), peer, peerReadResult.getReadCalls());
+      log.trace("read {} bytes from peer {}", bytesRead, peer);
 
-      final var bytesReadTotal = peerReadResult.getBytesReadTotal();
-      final var incomingBytes = new byte[bytesReadTotal];
+      final var incomingBytes = new byte[bytesRead];
       incomingBuffer.flip();
-      incomingBuffer.get(incomingBytes, 0, bytesReadTotal);
+      incomingBuffer.get(incomingBytes, 0, bytesRead);
       incomingBuffer.rewind();
       incoming = new String(incomingBytes, messageCharset);
     }
 
-    selectionKeyToggleQueueAdder.disableAndEnqueueEnable(key, SelectionKey.OP_READ);
-
     return Optional.ofNullable(incoming).map(messageStore::add).orElse(false);
   }
 
-  private PeerReadResult performRead(final Peer peer) {
-    var readCalls = 0;
-    var bytesReadTotal = 0;
+  private int performRead(final Peer peer) {
     var evictPeer = false;
+    final int finalBytesRead;
 
     try {
       final var socketChannel = peer.getSocketChannel();
-      var doneReading = false;
 
-      do {
-        final var bytesRead = socketChannel.read(incomingBuffer);
+      final var bytesRead = socketChannel.read(incomingBuffer);
 
-        readCalls++;
-
-        if (bytesRead == 0) {
-          doneReading = true;
-        } else if (bytesRead == -1) {
-          doneReading = true;
-          evictPeer = true;
-        } else {
-          bytesReadTotal += bytesRead;
-        }
-      } while (!doneReading);
+      if (bytesRead == -1) {
+        evictPeer = true;
+        finalBytesRead = 0;
+      } else {
+        finalBytesRead = bytesRead;
+      }
     } catch (final IOException ioe) {
       log.warn("io error while reading from peer, so marking for eviction", ioe);
-
       evictPeer = true;
+      return 0;
     } finally {
       if (evictPeer) {
         peerRegistry.evictPeer(peer);
-
-        log.warn("received end of stream from peer {}", peer);
       }
     }
 
-    return PeerReadResult.builder().bytesReadTotal(bytesReadTotal).readCalls(readCalls).build();
+    return finalBytesRead;
   }
 }

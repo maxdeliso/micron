@@ -41,7 +41,7 @@ final class Main {
   /**
    * How long to wait to handle another event after handling one for the same selection key.
    */
-  private static final Duration ASYNC_ENABLE_DURATION = Duration.ofNanos(100);
+  private static final Duration ASYNC_ENABLE_DURATION = Duration.ofMillis(1);
 
   public static void main(final String[] args) throws InterruptedException {
     final var slotManager = new InMemorySlotManager(MAX_MESSAGES);

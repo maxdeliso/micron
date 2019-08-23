@@ -27,7 +27,7 @@ public interface NonBlockingAcceptorSelector {
 
     final SelectionKey acceptSelectionKey = serverSocketChannel.register(selector, 0);
 
-    selectionKeyToggleQueueAdder.enqueueEnable(acceptSelectionKey, SelectionKey.OP_ACCEPT);
+    selectionKeyToggleQueueAdder.enqueueEnableInterest(acceptSelectionKey, SelectionKey.OP_ACCEPT);
 
     final SocketChannel socketChannel = serverSocketChannel.accept();
 
