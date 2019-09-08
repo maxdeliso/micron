@@ -18,10 +18,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
-import name.maxdeliso.micron.looper.read.SerialReadHandler;
-import name.maxdeliso.micron.looper.toggle.DelayedToggle;
-import name.maxdeliso.micron.looper.toggle.SelectionKeyToggleQueueAdder;
-import name.maxdeliso.micron.looper.write.SerialWriteHandler;
+import name.maxdeliso.micron.handler.read.SerialReadHandler;
+import name.maxdeliso.micron.handler.write.SerialWriteHandler;
+import name.maxdeliso.micron.toggle.DelayedToggle;
+import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
@@ -203,3 +203,4 @@ public class SingleThreadedStreamingEventLooper implements
     return (selectionKey.interestOps() & mask) == mask;
   }
 }
+

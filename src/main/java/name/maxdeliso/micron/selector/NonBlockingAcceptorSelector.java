@@ -6,7 +6,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.function.BiConsumer;
-import name.maxdeliso.micron.looper.toggle.SelectionKeyToggleQueueAdder;
+import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

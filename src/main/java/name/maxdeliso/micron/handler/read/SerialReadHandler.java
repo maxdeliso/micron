@@ -1,4 +1,4 @@
-package name.maxdeliso.micron.looper.read;
+package name.maxdeliso.micron.handler.read;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -7,7 +7,7 @@ import java.nio.charset.Charset;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import name.maxdeliso.micron.looper.toggle.SelectionKeyToggleQueueAdder;
+import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;

@@ -1,4 +1,4 @@
-package name.maxdeliso.micron.looper.toggle;
+package name.maxdeliso.micron.toggle;
 
 import java.util.concurrent.DelayQueue;
 import lombok.extern.slf4j.Slf4j;

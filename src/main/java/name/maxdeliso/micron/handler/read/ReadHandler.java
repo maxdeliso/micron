@@ -1,4 +1,4 @@
-package name.maxdeliso.micron.looper.read;
+package name.maxdeliso.micron.handler.read;
 
 import java.nio.channels.SelectionKey;
 import name.maxdeliso.micron.peer.Peer;

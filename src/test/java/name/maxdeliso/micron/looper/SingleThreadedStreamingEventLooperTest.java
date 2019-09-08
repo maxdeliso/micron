@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.DelayQueue;
-import name.maxdeliso.micron.looper.toggle.DelayedToggle;
+import name.maxdeliso.micron.toggle.DelayedToggle;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.support.TestSelectorProvider;

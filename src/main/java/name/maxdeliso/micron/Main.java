@@ -13,14 +13,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.SingleThreadedStreamingEventLooper;
-import name.maxdeliso.micron.looper.toggle.DelayedToggle;
-import name.maxdeliso.micron.looper.toggle.DelayedToggler;
+import name.maxdeliso.micron.toggle.DelayedToggle;
+import name.maxdeliso.micron.toggle.DelayedToggler;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
 import name.maxdeliso.micron.slots.InMemorySlotManager;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
