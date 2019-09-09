@@ -1,15 +1,16 @@
 package name.maxdeliso.micron.peer;
 
-import java.io.IOException;
-import java.nio.channels.SocketChannel;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.slots.SlotManager;
 import net.jcip.annotations.ThreadSafe;
+
+import java.io.IOException;
+import java.nio.channels.SocketChannel;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -41,17 +42,8 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
   @Override
   public Peer allocatePeer(final SocketChannel socketChannel) {
     final var newPeerNumber = peerCounter.get();
-
-    /*
-     * the "caught-up" logic states that a peer is caught up when it has reached the current
-     * position, so by setting the initial position to the current one plus one, the new peer may
-     * be able to read the entire ring buffer by reading new messages, so long as reading events
-     * are prioritized over writes
-     */
-    final var initialPosition = (ringBufferMessageStore.position() + 1)
-        % ringBufferMessageStore.size();
+    final var initialPosition = slotManager.nextNotSet(ringBufferMessageStore.position());
     final var newPeer = new Peer(newPeerNumber, initialPosition, socketChannel, slotManager);
-
     peerMap.put(newPeerNumber, newPeer);
     peerCounter.incrementAndGet();
     return newPeer;

@@ -31,6 +31,16 @@ public class InMemorySlotManager implements SlotManager {
   }
 
   @Override
+  public int nextNotSet(int pos) {
+    final int initialPosition = pos;
+    int i = (initialPosition + 1) % occupationCounts.size();
+    while (i != initialPosition && occupationCounts.get(i).get() == 0) {
+      i = (i + 1) % occupationCounts.size();
+    }
+    return i;
+  }
+
+  @Override
   public int size() {
     return occupationCounts.size();
   }

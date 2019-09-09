@@ -1,5 +1,7 @@
 package name.maxdeliso.micron.toggle;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -7,7 +9,6 @@ import java.time.Duration;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DelayedToggle implements Delayed {

@@ -1,7 +1,8 @@
 package name.maxdeliso.micron.toggle;
 
-import java.util.concurrent.DelayQueue;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.DelayQueue;
 
 @Slf4j
 public class DelayedToggler implements Runnable {

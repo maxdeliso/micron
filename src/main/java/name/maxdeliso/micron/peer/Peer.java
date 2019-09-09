@@ -1,10 +1,11 @@
 package name.maxdeliso.micron.peer;
 
-import java.nio.channels.SocketChannel;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Value;
 import name.maxdeliso.micron.slots.SlotManager;
 import net.jcip.annotations.ThreadSafe;
+
+import java.nio.channels.SocketChannel;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @ThreadSafe
 @Value

@@ -3,6 +3,18 @@ package name.maxdeliso.micron.looper;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import lombok.extern.slf4j.Slf4j;
+import name.maxdeliso.micron.handler.read.ReadHandler;
+import name.maxdeliso.micron.handler.read.SerialReadHandler;
+import name.maxdeliso.micron.handler.write.SerialWriteHandler;
+import name.maxdeliso.micron.handler.write.WriteHandler;
+import name.maxdeliso.micron.message.RingBufferMessageStore;
+import name.maxdeliso.micron.peer.PeerRegistry;
+import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
+import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
+import name.maxdeliso.micron.toggle.DelayedToggle;
+import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -17,15 +29,6 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.extern.slf4j.Slf4j;
-import name.maxdeliso.micron.handler.read.SerialReadHandler;
-import name.maxdeliso.micron.handler.write.SerialWriteHandler;
-import name.maxdeliso.micron.toggle.DelayedToggle;
-import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
-import name.maxdeliso.micron.message.RingBufferMessageStore;
-import name.maxdeliso.micron.peer.PeerRegistry;
-import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
-import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
 
 @Slf4j
 public class SingleThreadedStreamingEventLooper implements
@@ -45,8 +48,8 @@ public class SingleThreadedStreamingEventLooper implements
       = new AtomicReference<>();
 
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
-  private final SerialReadHandler readHandler;
-  private final SerialWriteHandler writeHandler;
+  private final ReadHandler readHandler;
+  private final WriteHandler writeHandler;
 
   private final Meter eventsMeter;
   private final Meter acceptEventsMeter;
@@ -145,7 +148,7 @@ public class SingleThreadedStreamingEventLooper implements
                   }
                 });
 
-	    readEventsMeter.mark();
+            readEventsMeter.mark();
           }
 
           if (selectedKey.isValid()
@@ -190,9 +193,7 @@ public class SingleThreadedStreamingEventLooper implements
 
     Optional
         .ofNullable(selectorRef.get())
-        .ifPresentOrElse(Selector::wakeup, () -> {
-          log.warn("select ref was absent during halt...");
-        });
+        .ifPresentOrElse(Selector::wakeup, () -> log.warn("select ref was absent during halt..."));
 
     log.info("awaiting countdown latch");
     latch.await();

@@ -2,6 +2,16 @@ package name.maxdeliso.micron;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.extern.slf4j.Slf4j;
+import name.maxdeliso.micron.looper.SingleThreadedStreamingEventLooper;
+import name.maxdeliso.micron.message.InMemoryMessageStore;
+import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
+import name.maxdeliso.micron.slots.InMemorySlotManager;
+import name.maxdeliso.micron.toggle.DelayedToggle;
+import name.maxdeliso.micron.toggle.DelayedToggler;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -11,16 +21,6 @@ import java.time.Duration;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
-import name.maxdeliso.micron.looper.SingleThreadedStreamingEventLooper;
-import name.maxdeliso.micron.toggle.DelayedToggle;
-import name.maxdeliso.micron.toggle.DelayedToggler;
-import name.maxdeliso.micron.message.InMemoryMessageStore;
-import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
-import name.maxdeliso.micron.slots.InMemorySlotManager;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @Slf4j
 final class Main {
@@ -82,20 +82,21 @@ final class Main {
             metrics
         );
 
-    final var toggleExecutor = Executors.newSingleThreadExecutor(
-        new ThreadFactoryBuilder()
-            .setNameFormat("delay-queue-%d")
-            .setUncaughtExceptionHandler(
-                (thread, throwable) -> {
-                  log.error("delay queue thread {} failed", thread, throwable);
+    final var toggleExecutor = Executors
+        .newSingleThreadExecutor(
+            new ThreadFactoryBuilder()
+                .setNameFormat("delay-queue-%d")
+                .setUncaughtExceptionHandler(
+                    (thread, throwable) -> {
+                      log.error("delay queue thread {} failed", thread, throwable);
 
-                  try {
-                    looper.halt();
-                  } catch (InterruptedException ie) {
-                    interruptFailure(ie);
-                  }
-                }
-            ).build());
+                      try {
+                        looper.halt();
+                      } catch (InterruptedException ie) {
+                        interruptFailure(ie);
+                      }
+                    }
+                ).build());
 
     final var delayToggler = new DelayedToggler(toggleDelayQueue);
 
