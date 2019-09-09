@@ -7,5 +7,7 @@ public interface SlotManager {
 
   void decrementOccupants(int pos);
 
+  int nextNotSet(int pos);
+
   int size();
 }

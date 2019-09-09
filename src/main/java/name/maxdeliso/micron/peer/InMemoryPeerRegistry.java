@@ -41,17 +41,8 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
   @Override
   public Peer allocatePeer(final SocketChannel socketChannel) {
     final var newPeerNumber = peerCounter.get();
-
-    /*
-     * the "caught-up" logic states that a peer is caught up when it has reached the current
-     * position, so by setting the initial position to the current one plus one, the new peer may
-     * be able to read the entire ring buffer by reading new messages, so long as reading events
-     * are prioritized over writes
-     */
-    final var initialPosition = (ringBufferMessageStore.position() + 1)
-        % ringBufferMessageStore.size();
+    final var initialPosition = slotManager.nextNotSet(ringBufferMessageStore.position());
     final var newPeer = new Peer(newPeerNumber, initialPosition, socketChannel, slotManager);
-
     peerMap.put(newPeerNumber, newPeer);
     peerCounter.incrementAndGet();
     return newPeer;
