@@ -38,9 +38,6 @@ public class InMemoryPeerRegistryTest {
 
   @Before
   public void setup() {
-    when(slotManager.size()).thenReturn(MAX_MESSAGES);
-    when(ringBufferMessageStore.size()).thenReturn(MAX_MESSAGES);
-
     selectorProvider = new TestSelectorProvider();
     socketChannel = new TestSocketChannel(selectorProvider);
     peerRegistry = new InMemoryPeerRegistry(slotManager, ringBufferMessageStore);
@@ -76,6 +73,8 @@ public class InMemoryPeerRegistryTest {
 
   @Test
   public void testTwoPeersAreSequentiallyNumbered() {
+    when(slotManager.size()).thenReturn(MAX_MESSAGES);
+
     final var firstPeer = peerRegistry.allocatePeer(socketChannel);
     final var secondPeer = peerRegistry.allocatePeer(socketChannel);
 
