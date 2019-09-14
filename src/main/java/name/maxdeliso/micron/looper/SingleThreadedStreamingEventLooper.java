@@ -20,12 +20,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.handler.read.SerialReadHandler;
 import name.maxdeliso.micron.handler.write.SerialWriteHandler;
-import name.maxdeliso.micron.toggle.DelayedToggle;
-import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
 import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
+import name.maxdeliso.micron.toggle.DelayedToggle;
+import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 
 @Slf4j
 public class SingleThreadedStreamingEventLooper implements
@@ -145,7 +145,7 @@ public class SingleThreadedStreamingEventLooper implements
                   }
                 });
 
-	    readEventsMeter.mark();
+            readEventsMeter.mark();
           }
 
           if (selectedKey.isValid()

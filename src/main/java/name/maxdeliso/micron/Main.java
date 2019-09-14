@@ -2,6 +2,7 @@ package name.maxdeliso.micron;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -13,14 +14,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.looper.SingleThreadedStreamingEventLooper;
-import name.maxdeliso.micron.toggle.DelayedToggle;
-import name.maxdeliso.micron.toggle.DelayedToggler;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
 import name.maxdeliso.micron.slots.InMemorySlotManager;
+import name.maxdeliso.micron.toggle.DelayedToggle;
+import name.maxdeliso.micron.toggle.DelayedToggler;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @Slf4j
 final class Main {

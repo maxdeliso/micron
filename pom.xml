@@ -134,20 +134,21 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.1.0</version>
+                <configuration>
+                    <configLocation>checkstyle.xml</configLocation>
+                    <encoding>UTF-8</encoding>
+                    <consoleOutput>true</consoleOutput>
+                    <failOnViolation>true</failOnViolation>
+                    <violationSeverity>warning</violationSeverity>
+                </configuration>
                 <executions>
                     <execution>
-                        <id>checkstyle</id>
-                        <phase>test</phase>
+                        <id>validate</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
-                        <configuration>
-                            <configLocation>google_checks.xml</configLocation>
-                            <encoding>UTF-8</encoding>
-                            <consoleOutput>true</consoleOutput>
-                            <failsOnError>true</failsOnError>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -156,16 +157,16 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.2.1</version>
                 <executions>
-                  <execution>
-                    <goals>
-                      <goal>java</goal>
-                    </goals>
-                  </execution>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
                 </executions>
                 <configuration>
-                  <mainClass>name.maxdeliso.micron.Main</mainClass>
+                    <mainClass>name.maxdeliso.micron.Main</mainClass>
                 </configuration>
-              </plugin>
+            </plugin>
         </plugins>
     </build>
 </project>
