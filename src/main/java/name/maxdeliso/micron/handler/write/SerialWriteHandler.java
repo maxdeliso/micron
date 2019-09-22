@@ -18,7 +18,6 @@ public class SerialWriteHandler implements WriteHandler {
   private final RingBufferMessageStore messageStore;
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
   private final PeerRegistry peerRegistry;
-  private final Charset charset;
 
   @Override
   public boolean handleWritablePeer(final SelectionKey key, final Peer peer) {
@@ -30,19 +29,17 @@ public class SerialWriteHandler implements WriteHandler {
     }
 
     try {
-      final var messageToWriteOpt = messageStore.get(peer.position());
+      final var messageToWrite = messageStore.get(peer.position());
       final var newPosition = peer.advancePosition();
 
       log.trace("updated the position of peer {} position to {}", peer, newPosition);
 
-      if (messageToWriteOpt.isEmpty()) {
+      if (messageToWrite.length == 0) {
         log.trace("nothing to write, message store is empty at position {}", peer.position());
         return false;
       }
 
-      final var messageToWrite = messageToWriteOpt.get();
-      final var bytesToWrite = messageToWrite.getBytes(charset);
-      final var bufferToWrite = ByteBuffer.wrap(bytesToWrite);
+      final var bufferToWrite = ByteBuffer.wrap(messageToWrite);
       final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
 
       log.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);

@@ -55,7 +55,6 @@ public class SingleThreadedStreamingEventLooperTest {
 
     new SingleThreadedStreamingEventLooper(
         socketAddress,
-        StandardCharsets.UTF_8,
         peerRegistry,
         messageStore,
         selectorProvider,

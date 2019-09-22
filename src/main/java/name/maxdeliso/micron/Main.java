@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.spi.SelectorProvider;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
@@ -40,7 +39,7 @@ final class Main {
 
     final var slotManager = new InMemorySlotManager(arguments.getMaxMessages());
 
-    final var messageStore = new InMemoryMessageStore(slotManager);
+    final var messageStore = new InMemoryMessageStore(slotManager, arguments.getBufferSize());
 
     final var peerRegistry = new InMemoryPeerRegistry(slotManager, messageStore);
 
@@ -62,7 +61,6 @@ final class Main {
     final var looper =
         new SingleThreadedStreamingEventLooper(
             new InetSocketAddress(arguments.getPort()),
-            StandardCharsets.UTF_8,
             peerRegistry,
             messageStore,
             SelectorProvider.provider(),

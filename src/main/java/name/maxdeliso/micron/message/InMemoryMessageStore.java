@@ -14,19 +14,27 @@ import net.jcip.annotations.ThreadSafe;
 @ThreadSafe
 public final class InMemoryMessageStore implements RingBufferMessageStore {
 
-  private final List<String> messages;
+  private final List<byte[]> messages;
 
   private final AtomicInteger position = new AtomicInteger(0);
 
   private final SlotManager slotManager;
 
-  public InMemoryMessageStore(final SlotManager slotManager) {
-    this.messages = Arrays.asList(new String[slotManager.size()]);
+  private final int messageSize;
+
+  public InMemoryMessageStore(final SlotManager slotManager, final int messageSize) {
+    this.messages = Arrays.asList(new byte[slotManager.size()][messageSize]);
     this.slotManager = slotManager;
+    this.messageSize = messageSize;
   }
 
   @Override
-  public boolean add(final String received) {
+  public boolean add(final byte[] received) {
+    if (received.length > messageSize) {
+      throw new IllegalArgumentException("message received was larger than maximum of "
+          + messageSize);
+    }
+
     synchronized (this.messages) {
       int currentPosition = position.get();
       int nextPosition = (currentPosition + 1) % this.messages.size();
@@ -34,7 +42,7 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
       // if moving c would overwrite a peer's position, then data would be dropped, so fail
       if (slotManager.positionOccupied(nextPosition)) {
         log.warn("dropping message of length {} at position {} due to overflow",
-            received.length(), nextPosition);
+            received.length, nextPosition);
         return false;
       } else {
         this.messages.set(currentPosition, received);
@@ -45,9 +53,9 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
   }
 
   @Override
-  public Optional<String> get(final int messageIdx) {
+  public byte[] get(final int messageIdx) {
     synchronized (this.messages) {
-      return Optional.ofNullable(messages.get(messageIdx));
+      return messages.get(messageIdx);
     }
   }
 
@@ -59,5 +67,10 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
   @Override
   public int size() {
     return this.messages.size();
+  }
+
+  @Override
+  public int messageSize() {
+    return this.messageSize;
   }
 }

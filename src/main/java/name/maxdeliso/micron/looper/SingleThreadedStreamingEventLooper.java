@@ -59,7 +59,6 @@ public class SingleThreadedStreamingEventLooper implements
    * Build a single threaded threaded streaming event looper.
    *
    * @param socketAddress       address to listen on.
-   * @param messageCharset      message charset to use.
    * @param peerRegistry        a peer registry instance.
    * @param messageStore        a message store instance.
    * @param selectorProvider    a provider of selectors.
@@ -69,7 +68,6 @@ public class SingleThreadedStreamingEventLooper implements
    * @param metrics             capture metrics about performance.
    */
   public SingleThreadedStreamingEventLooper(final SocketAddress socketAddress,
-                                            final Charset messageCharset,
                                             final PeerRegistry peerRegistry,
                                             final RingBufferMessageStore messageStore,
                                             final SelectorProvider selectorProvider,
@@ -95,7 +93,6 @@ public class SingleThreadedStreamingEventLooper implements
 
     this.readHandler = new SerialReadHandler(
         incomingBuffer,
-        messageCharset,
         peerRegistry,
         messageStore,
         selectionKeyToggleQueueAdder);
@@ -103,8 +100,7 @@ public class SingleThreadedStreamingEventLooper implements
     this.writeHandler = new SerialWriteHandler(
         messageStore,
         selectionKeyToggleQueueAdder,
-        peerRegistry,
-        messageCharset);
+        peerRegistry);
   }
 
   @Override

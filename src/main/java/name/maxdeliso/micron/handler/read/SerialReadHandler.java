@@ -17,7 +17,6 @@ import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 public class SerialReadHandler implements ReadHandler {
 
   private final ByteBuffer incomingBuffer;
-  private final Charset messageCharset;
   private final PeerRegistry peerRegistry;
   private final RingBufferMessageStore messageStore;
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
@@ -27,23 +26,22 @@ public class SerialReadHandler implements ReadHandler {
     selectionKeyToggleQueueAdder.disableAndEnqueueEnableInterest(key, SelectionKey.OP_READ);
 
     final int bytesRead = performRead(peer);
-    final String incoming;
+    final byte[] incomingBytes;
 
     if (bytesRead == 0) {
-      incoming = null;
-
       log.trace("read no bytes from peer {}", peer);
+
+      incomingBytes = null;
     } else {
       log.trace("read {} bytes from peer {}", bytesRead, peer);
 
-      final var incomingBytes = new byte[bytesRead];
+      incomingBytes = new byte[bytesRead];
       incomingBuffer.flip();
       incomingBuffer.get(incomingBytes, 0, bytesRead);
       incomingBuffer.rewind();
-      incoming = new String(incomingBytes, messageCharset);
     }
 
-    return Optional.ofNullable(incoming).map(messageStore::add).orElse(false);
+    return Optional.ofNullable(incomingBytes).map(messageStore::add).orElse(false);
   }
 
   private int performRead(final Peer peer) {

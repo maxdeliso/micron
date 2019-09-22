@@ -3,11 +3,13 @@ package name.maxdeliso.micron.message;
 import java.util.Optional;
 
 public interface RingBufferMessageStore {
-  boolean add(String received);
+  boolean add(byte[] received);
 
-  Optional<String> get(int messageIdx);
+  byte[] get(int messageIdx);
 
   int position();
 
   int size();
+
+  int messageSize();
 }
