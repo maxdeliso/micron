@@ -1,6 +1,8 @@
 package name.maxdeliso.micron.slots;
 
 import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class InMemorySlotManager implements SlotManager {
   private final AtomicIntegerArray occupationCounts;
@@ -42,24 +44,14 @@ public class InMemorySlotManager implements SlotManager {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder();
-    int matches = 0;
+    final String ocs =
+        IntStream
+            .range(0, occupationCounts.length())
+            .boxed()
+            .filter(idx -> occupationCounts.get(idx) > 0)
+            .map(idx -> String.format("%d @ %d", occupationCounts.get(idx), idx))
+            .collect(Collectors.joining(","));
 
-    for (int i = 0; i < occupationCounts.length(); i++) {
-      final int count = occupationCounts.get(i);
-
-      if (count > 0) {
-        if (matches > 0) {
-          sb.append(", ");
-        }
-
-        sb.append(count);
-        sb.append(" @ ");
-        sb.append(i);
-        matches++;
-      }
-    }
-
-    return "InMemorySlotManager{occupationCounts=" + sb.toString() + '}';
+    return "InMemorySlotManager{occupationCounts=[" + ocs + "]}";
   }
 }
