@@ -13,8 +13,8 @@ import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.DelayQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.handler.read.ReadHandler;
@@ -29,7 +29,7 @@ import name.maxdeliso.micron.toggle.DelayedToggle;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 
 @Slf4j
-public class SingleThreadedStreamingEventLooper implements
+public class SynchronousEventStreamLooper implements
     EventLooper,
     PeerCountingReadWriteSelector,
     NonBlockingAcceptorSelector {
@@ -38,12 +38,14 @@ public class SingleThreadedStreamingEventLooper implements
   private final PeerRegistry peerRegistry;
   private final SelectorProvider selectorProvider;
 
-  private final CountDownLatch latch
-      = new CountDownLatch(1);
   private final AtomicReference<ServerSocketChannel> serverSocketChannelRef
       = new AtomicReference<>();
   private final AtomicReference<Selector> selectorRef
       = new AtomicReference<>();
+  private final AtomicBoolean looping
+      = new AtomicBoolean(false);
+  private final AtomicBoolean starting
+      = new AtomicBoolean(true);
 
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
   private final ReadHandler readHandler;
@@ -66,14 +68,14 @@ public class SingleThreadedStreamingEventLooper implements
    * @param asyncEnableDuration the duration to re-enable i/o operations for.
    * @param metrics             capture metrics about performance.
    */
-  public SingleThreadedStreamingEventLooper(final SocketAddress socketAddress,
-                                            final PeerRegistry peerRegistry,
-                                            final RingBufferMessageStore messageStore,
-                                            final SelectorProvider selectorProvider,
-                                            final ByteBuffer incomingBuffer,
-                                            final DelayQueue<DelayedToggle> toggleDelayQueue,
-                                            final Duration asyncEnableDuration,
-                                            final MetricRegistry metrics) {
+  public SynchronousEventStreamLooper(final SocketAddress socketAddress,
+                                      final PeerRegistry peerRegistry,
+                                      final RingBufferMessageStore messageStore,
+                                      final SelectorProvider selectorProvider,
+                                      final ByteBuffer incomingBuffer,
+                                      final DelayQueue<DelayedToggle> toggleDelayQueue,
+                                      final Duration asyncEnableDuration,
+                                      final MetricRegistry metrics) {
     this.socketAddress = socketAddress;
     this.peerRegistry = peerRegistry;
     this.selectorProvider = selectorProvider;
@@ -113,8 +115,9 @@ public class SingleThreadedStreamingEventLooper implements
       socketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
       log.info("bound to {}, entering event loop", socketAddress);
-
-      while (serverSocketChannel.isOpen()) {
+      looping.set(true);
+      starting.set(false);
+      while (looping.get() && serverSocketChannel.isOpen()) {
         selector.select();
 
         for (final var selectedKey : selector.selectedKeys()) {
@@ -165,33 +168,55 @@ public class SingleThreadedStreamingEventLooper implements
         eventsMeter.mark();
       } // while
     } finally {
-      latch.countDown();
-
-      log.info("exiting event loop");
+      looping.set(false);
+      log.info("looper exiting");
     }
   }
 
   @Override
-  public void halt() throws InterruptedException {
-    Optional
+  public boolean alive() {
+    return starting.get() || looping.get();
+  }
+
+  @Override
+  public boolean halt() {
+    if (starting.get()) {
+      log.trace("looper is still starting");
+      return false;
+    }
+
+    if (looping.get()) {
+      log.trace("disabling looping flag");
+      looping.set(false);
+    } else {
+      log.info("looper is already done looping");
+      return false;
+    }
+
+    var closeSucceeded = Optional
         .ofNullable(serverSocketChannelRef.get())
         .filter(AbstractInterruptibleChannel::isOpen)
-        .ifPresentOrElse(ss -> {
+        .map(ss -> {
           try {
             log.trace("closing server socket channel during halt...");
             ss.close();
+            return true;
           } catch (final IOException ioe) {
             log.trace("warn failed to close server socket channel during halt...", ioe);
+            return false;
           }
-        }, () -> log.warn("halting prior to server socket channel ref becoming available"));
+        })
+        .orElse(false);
+
+    if (!closeSucceeded) {
+      return false;
+    }
 
     Optional
         .ofNullable(selectorRef.get())
         .ifPresentOrElse(Selector::wakeup, () -> log.warn("select ref was absent during halt..."));
 
-    log.info("awaiting countdown latch");
-    latch.await();
-    log.info("halt completed");
+    return true;
   }
 
   private boolean maskOpSet(final SelectionKey selectionKey, final int mask) {

@@ -8,6 +8,4 @@ public interface RingBufferMessageStore {
   int position();
 
   int size();
-
-  int messageSize();
 }

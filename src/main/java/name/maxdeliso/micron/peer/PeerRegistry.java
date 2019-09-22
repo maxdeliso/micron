@@ -11,4 +11,6 @@ public interface PeerRegistry {
   void evictPeer(Peer peer);
 
   long size();
+
+  int getReadOrder(Peer peer);
 }

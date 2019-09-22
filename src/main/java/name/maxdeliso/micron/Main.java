@@ -13,7 +13,7 @@ import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import name.maxdeliso.micron.looper.SingleThreadedStreamingEventLooper;
+import name.maxdeliso.micron.looper.SynchronousEventStreamLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
 import name.maxdeliso.micron.params.Arguments;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
@@ -59,7 +59,7 @@ final class Main {
     reporter.start(1, TimeUnit.SECONDS);
 
     final var looper =
-        new SingleThreadedStreamingEventLooper(
+        new SynchronousEventStreamLooper(
             new InetSocketAddress(arguments.getPort()),
             peerRegistry,
             messageStore,
@@ -76,12 +76,7 @@ final class Main {
             .setUncaughtExceptionHandler(
                 (thread, throwable) -> {
                   log.error("delay queue thread {} failed", thread, throwable);
-
-                  try {
-                    looper.halt();
-                  } catch (InterruptedException ie) {
-                    interruptFailure(ie);
-                  }
+                  looper.halt();
                 }
             ).build());
 
@@ -90,13 +85,8 @@ final class Main {
     toggleExecutor.execute(delayToggler);
 
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      try {
-        log.trace("sending halt to looper...");
-
-        looper.halt();
-      } catch (final InterruptedException ie) {
-        interruptFailure(ie);
-      }
+      log.trace("sending halt to looper...");
+      looper.halt();
     }));
 
     try {

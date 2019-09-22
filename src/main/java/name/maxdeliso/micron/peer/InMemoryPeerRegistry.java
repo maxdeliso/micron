@@ -2,9 +2,11 @@ package name.maxdeliso.micron.peer;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
@@ -69,4 +71,15 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
   public long size() {
     return peerMap.size();
   }
+
+  @Override
+  public int getReadOrder(final Peer peer) {
+    return peerMap
+        .values()
+        .stream()
+        .sorted(Comparator.comparingLong(Peer::getNetBytesRX))
+        .collect(Collectors.toList())
+        .indexOf(peer);
+  }
+
 }

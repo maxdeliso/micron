@@ -18,10 +18,10 @@ public class SelectionKeyToggleQueueAdder implements ToggleQueueAdder {
   private final DelayQueue<DelayedToggle> toggleDelayQueue;
 
   @Override
-  public void disableAndEnqueueEnableInterest(final SelectionKey key, final int mask) {
+  public void disableAndEnqueueEnableInterest(final SelectionKey key, final int mask, int weight) {
     try {
       if ((key.interestOpsAnd(~mask) & mask) == mask) {
-        enqueueEnableInterest(key, mask);
+        enqueueEnableInterest(key, mask, weight);
       } else {
         log.trace("clearing interest ops had no effect on key {}", key);
       }
@@ -31,13 +31,17 @@ public class SelectionKeyToggleQueueAdder implements ToggleQueueAdder {
   }
 
   @Override
-  public void enqueueEnableInterest(final SelectionKey key, final int mask) {
+  public void enqueueEnableInterest(final SelectionKey key, final int mask, int weight) {
     var delayedEnableToggle = new DelayedToggle(
         selectorAtomicReference,
-        enableDuration,
+        enableDuration.multipliedBy(weight),
         key,
         mask);
 
     toggleDelayQueue.add(delayedEnableToggle);
+  }
+
+  public void enqueueEnableInterest(SelectionKey acceptSelectionKey, int opAccept) {
+    enqueueEnableInterest(acceptSelectionKey, opAccept, 1);
   }
 }

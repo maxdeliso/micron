@@ -27,9 +27,6 @@ public class InMemoryMessageStoreTest {
   private static final Integer TEST_MESSAGE_SIZE = 128;
 
   @Mock
-  private PeerRegistry peerRegistry;
-
-  @Mock
   private SlotManager slotManager;
 
   private RingBufferMessageStore messageStore;
@@ -55,7 +52,7 @@ public class InMemoryMessageStoreTest {
   public void testEmptyGet() {
     final byte[] message = messageStore.get(0);
 
-    assertTrue(message.length == TEST_MESSAGE_SIZE);
+    assertEquals(message.length, (int) TEST_MESSAGE_SIZE);
 
     for (int i = 0; i < TEST_MESSAGE_SIZE; i++) {
       assertEquals(message[i], 0);
