@@ -11,7 +11,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.nio.channels.spi.SelectorProvider;
-import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;

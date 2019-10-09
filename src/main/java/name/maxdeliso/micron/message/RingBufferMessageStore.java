@@ -1,7 +1,5 @@
 package name.maxdeliso.micron.message;
 
-import java.util.Optional;
-
 public interface RingBufferMessageStore {
   boolean add(byte[] received);
 

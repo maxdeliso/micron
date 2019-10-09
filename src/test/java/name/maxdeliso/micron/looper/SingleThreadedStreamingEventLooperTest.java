@@ -4,7 +4,6 @@ import com.codahale.metrics.MetricRegistry;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.DelayQueue;
