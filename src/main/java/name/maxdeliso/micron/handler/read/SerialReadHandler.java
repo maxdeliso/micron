@@ -7,7 +7,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
-import name.maxdeliso.micron.peer.Peer;
+import name.maxdeliso.micron.peer.InMemoryPeer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 
@@ -21,7 +21,7 @@ public class SerialReadHandler implements ReadHandler {
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
 
   @Override
-  public boolean handleReadablePeer(final SelectionKey key, final Peer peer) {
+  public boolean handleReadablePeer(final SelectionKey key, final InMemoryPeer peer) {
     final int readOrder = peerRegistry.getReadOrder(peer);
 
     selectionKeyToggleQueueAdder
@@ -49,7 +49,7 @@ public class SerialReadHandler implements ReadHandler {
     return Optional.ofNullable(incomingBytes).map(messageStore::add).orElse(false);
   }
 
-  private int performRead(final Peer peer) {
+  private int performRead(final InMemoryPeer peer) {
     var evictPeer = false;
     final int finalBytesRead;
 

@@ -7,5 +7,5 @@ public interface EventLooper {
 
   boolean alive();
 
-  boolean halt() throws InterruptedException;
+  void halt() throws InterruptedException;
 }

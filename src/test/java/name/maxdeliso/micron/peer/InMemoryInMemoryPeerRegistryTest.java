@@ -19,7 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class InMemoryPeerRegistryTest {
+public class InMemoryInMemoryPeerRegistryTest {
 
   private final int MAX_MESSAGES = 8;
 
@@ -48,7 +48,7 @@ public class InMemoryPeerRegistryTest {
   public void testPeerRegistryAssociatesSinglePeer() {
     peerRegistry.allocatePeer(socketChannel);
 
-    final Optional<Peer> peerOpt = peerRegistry.get(0);
+    final Optional<InMemoryPeer> peerOpt = peerRegistry.get(0);
 
     assertTrue(peerOpt.isPresent());
     assertEquals(socketChannel, peerOpt.get().getSocketChannel());
@@ -58,14 +58,14 @@ public class InMemoryPeerRegistryTest {
   public void testSinglePeerPositionIsReturned() {
     peerRegistry.allocatePeer(socketChannel);
 
-    final Optional<Peer> peerOpt = peerRegistry.get(0);
+    final Optional<InMemoryPeer> peerOpt = peerRegistry.get(0);
 
     assertTrue(peerOpt.isPresent());
   }
 
   @Test
   public void testSinglePeerAllocationAndEviction() {
-    final Peer peer = peerRegistry.allocatePeer(socketChannel);
+    final InMemoryPeer peer = peerRegistry.allocatePeer(socketChannel);
 
     peerRegistry.evictPeer(peer);
 
@@ -82,8 +82,8 @@ public class InMemoryPeerRegistryTest {
     firstPeer.advancePosition();
     secondPeer.advancePosition();
 
-    final Optional<Peer> firstPeerOpt = peerRegistry.get(0);
-    final Optional<Peer> secondPeerOpt = peerRegistry.get(1);
+    final Optional<InMemoryPeer> firstPeerOpt = peerRegistry.get(0);
+    final Optional<InMemoryPeer> secondPeerOpt = peerRegistry.get(1);
 
     assertTrue(firstPeerOpt.isPresent());
     assertEquals(firstPeerOpt.get(), firstPeer);

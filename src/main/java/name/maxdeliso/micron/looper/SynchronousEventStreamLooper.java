@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.time.Duration;
@@ -16,12 +17,15 @@ import java.util.Optional;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.handler.read.ReadHandler;
 import name.maxdeliso.micron.handler.read.SerialReadHandler;
 import name.maxdeliso.micron.handler.write.SerialWriteHandler;
 import name.maxdeliso.micron.handler.write.WriteHandler;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
+import name.maxdeliso.micron.peer.InMemoryPeer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
 import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
@@ -179,10 +183,10 @@ public class SynchronousEventStreamLooper implements
   }
 
   @Override
-  public boolean halt() {
+  public void halt() {
     if (starting.get()) {
       log.trace("looper is still starting");
-      return false;
+      return;
     }
 
     if (looping.get()) {
@@ -190,7 +194,7 @@ public class SynchronousEventStreamLooper implements
       looping.set(false);
     } else {
       log.info("looper is already done looping");
-      return false;
+      return;
     }
 
     var closeSucceeded = Optional
@@ -209,18 +213,78 @@ public class SynchronousEventStreamLooper implements
         .orElse(false);
 
     if (!closeSucceeded) {
-      return false;
+      return;
     }
 
     Optional
         .ofNullable(selectorRef.get())
         .ifPresentOrElse(Selector::wakeup, () -> log.warn("select ref was absent during halt..."));
 
-    return true;
   }
 
   private boolean maskOpSet(final SelectionKey selectionKey, final int mask) {
     return (selectionKey.interestOps() & mask) == mask;
+  }
+
+  @Override
+  public void handleAccept(
+      ServerSocketChannel serverSocketChannel,
+      Selector selector,
+      SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder,
+      BiConsumer<SocketChannel, SelectionKey> peerConsumer) throws IOException {
+
+    final SelectionKey acceptSelectionKey = serverSocketChannel.register(selector, 0);
+
+    selectionKeyToggleQueueAdder.enqueueEnableInterest(acceptSelectionKey, SelectionKey.OP_ACCEPT);
+
+    final SocketChannel socketChannel = serverSocketChannel.accept();
+
+    if (socketChannel == null) {
+      return;
+    }
+
+    socketChannel.configureBlocking(false);
+
+    final var peerKey = socketChannel
+        .register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+
+    peerConsumer.accept(socketChannel, peerKey);
+  }
+
+  @Override
+  public void associatePeer(
+      SocketChannel socketChannel,
+      SelectionKey peerKey,
+      PeerRegistry peerRegistry) {
+    final var peer = peerRegistry.allocatePeer(socketChannel);
+    peerKey.attach(peer.getIndex());
+  }
+
+  @Override
+  public Optional<InMemoryPeer> lookupPeer(
+      SelectionKey selectionKey,
+      PeerRegistry peerRegistry) {
+    return Optional.ofNullable(selectionKey)
+        .map(key -> (Integer) key.attachment())
+        .flatMap(peerRegistry::get);
+  }
+
+  @Override
+  public void handleReadableKey(
+      SelectionKey readSelectedKey,
+      PeerRegistry peerRegistry,
+      Consumer<InMemoryPeer> peerConsumer) {
+    lookupPeer(readSelectedKey, peerRegistry)
+        .ifPresent(peerConsumer);
+  }
+
+  @Override
+  public void handleWritableKey(
+      SelectionKey writeSelectedKey,
+      PeerRegistry peerRegistry,
+      BiConsumer<SelectionKey, InMemoryPeer> peerConsumer) {
+    lookupPeer(writeSelectedKey, peerRegistry)
+        .ifPresent(peer -> peerConsumer.accept(writeSelectedKey, peer));
   }
 }
 

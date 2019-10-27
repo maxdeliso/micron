@@ -20,7 +20,7 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
 
   private final AtomicInteger peerCounter;
 
-  private final ConcurrentHashMap<Integer, Peer> peerMap;
+  private final ConcurrentHashMap<Integer, InMemoryPeer> peerMap;
 
   private final RingBufferMessageStore ringBufferMessageStore;
 
@@ -36,15 +36,15 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
   }
 
   @Override
-  public Optional<Peer> get(final int index) {
+  public Optional<InMemoryPeer> get(final int index) {
     return Optional.ofNullable(peerMap.get(index));
   }
 
   @Override
-  public Peer allocatePeer(final SocketChannel socketChannel) {
+  public InMemoryPeer allocatePeer(final SocketChannel socketChannel) {
     final var newPeerNumber = peerCounter.get();
     final var initialPosition = slotManager.nextNotSet(ringBufferMessageStore.position());
-    final var newPeer = new Peer(newPeerNumber, initialPosition, socketChannel, slotManager);
+    final var newPeer = new InMemoryPeer(newPeerNumber, initialPosition, socketChannel, slotManager);
     peerMap.put(newPeerNumber, newPeer);
     peerCounter.incrementAndGet();
     return newPeer;
@@ -56,7 +56,7 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
    * @param peer peer to be evicted.
    */
   @Override
-  public void evictPeer(final Peer peer) {
+  public void evictPeer(final InMemoryPeer peer) {
     try {
       peer.getSocketChannel().close();
     } catch (final IOException ioe) {
@@ -73,11 +73,11 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
   }
 
   @Override
-  public int getReadOrder(final Peer peer) {
+  public int getReadOrder(final InMemoryPeer peer) {
     return peerMap
         .values()
         .stream()
-        .sorted(Comparator.comparingLong(Peer::getNetBytesRX))
+        .sorted(Comparator.comparingLong(InMemoryPeer::getNetBytesRX))
         .collect(Collectors.toList())
         .indexOf(peer);
   }

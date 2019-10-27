@@ -6,7 +6,7 @@ import java.nio.channels.SelectionKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
-import name.maxdeliso.micron.peer.Peer;
+import name.maxdeliso.micron.peer.InMemoryPeer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 
@@ -19,7 +19,7 @@ public class SerialWriteHandler implements WriteHandler {
   private final PeerRegistry peerRegistry;
 
   @Override
-  public boolean handleWritablePeer(final SelectionKey key, final Peer peer) {
+  public boolean handleWritablePeer(final SelectionKey key, final InMemoryPeer peer) {
     final int writeOrder = peerRegistry.getReadOrder(peer);
 
     selectionKeyToggleQueueAdder

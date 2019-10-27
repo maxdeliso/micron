@@ -4,13 +4,13 @@ import java.nio.channels.SocketChannel;
 import java.util.Optional;
 
 public interface PeerRegistry {
-  Optional<Peer> get(int index);
+  Optional<InMemoryPeer> get(int index);
 
-  Peer allocatePeer(SocketChannel clientChannel);
+  InMemoryPeer allocatePeer(SocketChannel clientChannel);
 
-  void evictPeer(Peer peer);
+  void evictPeer(InMemoryPeer peer);
 
   long size();
 
-  int getReadOrder(Peer peer);
+  int getReadOrder(InMemoryPeer peer);
 }

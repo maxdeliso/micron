@@ -17,13 +17,10 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
 
   private final AtomicInteger position = new AtomicInteger(0);
 
-  private final SlotManager slotManager;
-
   private final int messageSize;
 
   public InMemoryMessageStore(final SlotManager slotManager, final int messageSize) {
     this.messages = Arrays.asList(new byte[slotManager.size()][messageSize]);
-    this.slotManager = slotManager;
     this.messageSize = messageSize;
   }
 
@@ -35,19 +32,11 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
     }
 
     synchronized (this.messages) {
-      int currentPosition = position.get();
-      int nextPosition = (currentPosition + 1) % this.messages.size();
-
-      // if moving c would overwrite a peer's position, then data would be dropped, so fail
-      if (slotManager.positionOccupied(nextPosition)) {
-        log.trace("dropping message of length {} at position {} due to overflow",
-            received.length, nextPosition);
-        return false;
-      } else {
-        this.messages.set(currentPosition, received);
-        position.set(nextPosition); // update position of ring buffer message store
-        return true;
-      }
+      final int currentPosition = position.get();
+      final int nextPosition = (currentPosition + 1) % this.messages.size();
+      this.messages.set(currentPosition, received);
+      position.set(nextPosition); // update position of ring buffer message store
+      return true;
     }
   }
 

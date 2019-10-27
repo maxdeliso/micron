@@ -34,7 +34,6 @@ public class InMemoryMessageStoreTest {
   @Before
   public void setup() {
     when(slotManager.size()).thenReturn(TEST_SIZE);
-    when(slotManager.positionOccupied(anyInt())).thenReturn(false);
 
     messageStore = new InMemoryMessageStore(slotManager, TEST_MESSAGE_SIZE);
   }
@@ -68,12 +67,5 @@ public class InMemoryMessageStoreTest {
 
     // the last write should wrap around to the beginning
     assertArrayEquals(messageStore.get(0), String.valueOf(TEST_MESSAGE_COUNT).getBytes());
-  }
-
-  @Test
-  public void testMultipleProducerOverflow() {
-    when(slotManager.positionOccupied(1)).thenReturn(true);
-
-    assertFalse(messageStore.add("not-added".getBytes()));
   }
 }

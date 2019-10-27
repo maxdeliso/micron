@@ -9,7 +9,7 @@ import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
 @Value
-public final class Peer implements RingPositionTracker {
+public final class InMemoryPeer implements RingPositionTracker {
 
   private final int index;
 
@@ -31,10 +31,10 @@ public final class Peer implements RingPositionTracker {
    * @param socketChannel   a socket channel corresponding to the peer.
    * @param slotManager     a manager of slots, to keep track of what slots the peer occupies.
    */
-  public Peer(final int index,
-              final int initialPosition,
-              final SocketChannel socketChannel,
-              final SlotManager slotManager) {
+  public InMemoryPeer(final int index,
+                      final int initialPosition,
+                      final SocketChannel socketChannel,
+                      final SlotManager slotManager) {
     this.index = index;
     this.position = new AtomicInteger(initialPosition);
     this.socketChannel = socketChannel;
