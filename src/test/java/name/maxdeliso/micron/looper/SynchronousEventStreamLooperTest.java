@@ -1,5 +1,10 @@
 package name.maxdeliso.micron.looper;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
+
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -7,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.DelayQueue;
+import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.support.TestSelectorProvider;
@@ -16,13 +22,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 @RunWith(MockitoJUnitRunner.class)
-public class SingleThreadedStreamingEventLooperTest {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedStreamingEventLooperTest.class);
-
+public class SynchronousEventStreamLooperTest {
   private static final int TEST_BUFFER_SIZE = 1;
 
   @Mock
@@ -40,19 +43,20 @@ public class SingleThreadedStreamingEventLooperTest {
   @Mock
   private DelayQueue<DelayedToggle> delayedToggles;
 
-  private Duration duration;
+  @Mock
+  private Meter meter;
 
-  private TestSelectorProvider selectorProvider;
-
-  private SingleThreadedStreamingEventLooper singleThreadedStreamingEventLooper;
+  private SynchronousEventStreamLooper synchronousEventStreamLooper;
 
   @Before
   public void buildLooper() {
-    duration = Duration.ZERO;
+    Duration duration = Duration.ZERO;
 
-    selectorProvider = new TestSelectorProvider();
+    TestSelectorProvider selectorProvider = new TestSelectorProvider();
 
-    new SingleThreadedStreamingEventLooper(
+    when(metricRegistry.meter(anyString())).thenReturn(meter);
+
+    synchronousEventStreamLooper = new SynchronousEventStreamLooper(
         socketAddress,
         peerRegistry,
         messageStore,
@@ -64,28 +68,27 @@ public class SingleThreadedStreamingEventLooperTest {
     );
   }
 
-  private Thread buildStarterThread(final SingleThreadedStreamingEventLooper looper) {
+  private Thread buildStarterThread(final SynchronousEventStreamLooper looper) {
     return new Thread(() -> {
       try {
         looper.loop();
       } catch (final IOException ioe) {
-        LOGGER.warn("I/O exception while looping", ioe);
+        log.warn("I/O exception while looping", ioe);
       }
     });
   }
 
-  private Thread buildJoinerThread(final SingleThreadedStreamingEventLooper looper) {
+  private Thread buildJoinerThread(final SynchronousEventStreamLooper looper) {
     return new Thread(() -> {
-      try {
+      while (looper.alive()) {
+        log.trace("sending halt");
         looper.halt();
-      } catch (final InterruptedException ie) {
-        LOGGER.warn("exception while halting", ie);
       }
     });
   }
 
   private void joinSerially(final Thread... threads) {
-    LOGGER.trace("attempting join of {} threads", threads.length);
+    log.trace("attempting join of {} threads", threads.length);
 
     Arrays.stream(threads).forEach(thread -> {
       try {
@@ -95,14 +98,27 @@ public class SingleThreadedStreamingEventLooperTest {
       }
     });
 
-    LOGGER.trace("joins completed normally");
+    log.trace("joins completed normally");
   }
 
   @Test
   public void testLoopStartsAndStops() {
-    final var starterThread = buildStarterThread(singleThreadedStreamingEventLooper);
-    final var joinerThread = buildJoinerThread(singleThreadedStreamingEventLooper);
-
+    final var starterThread = buildStarterThread(synchronousEventStreamLooper);
+    final var joinerThread = buildJoinerThread(synchronousEventStreamLooper);
+    starterThread.start();
+    joinerThread.start();
     joinSerially(starterThread, joinerThread);
+  }
+
+  @Test
+  public void testLoopStartsAndStopsInverted() {
+    final var starterThread = buildStarterThread(synchronousEventStreamLooper);
+    final var joinerThreadFirst = buildJoinerThread(synchronousEventStreamLooper);
+    final var joinerThreadSecond = buildJoinerThread(synchronousEventStreamLooper);
+
+    joinerThreadFirst.start();
+    starterThread.start();
+    joinerThreadSecond.start();
+    joinSerially(joinerThreadFirst, starterThread, joinerThreadSecond);
   }
 }

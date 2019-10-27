@@ -30,8 +30,8 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
   @Override
   public boolean add(final byte[] received) {
     if (received.length > messageSize) {
-      throw new IllegalArgumentException("message received was larger than maximum of "
-          + messageSize);
+      log.warn("message received ({}) was larger than maximum of {}", received.length, messageSize);
+      return false;
     }
 
     synchronized (this.messages) {
@@ -40,7 +40,7 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
 
       // if moving c would overwrite a peer's position, then data would be dropped, so fail
       if (slotManager.positionOccupied(nextPosition)) {
-        log.warn("dropping message of length {} at position {} due to overflow",
+        log.trace("dropping message of length {} at position {} due to overflow",
             received.length, nextPosition);
         return false;
       } else {
@@ -68,8 +68,4 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
     return this.messages.size();
   }
 
-  @Override
-  public int messageSize() {
-    return this.messageSize;
-  }
 }

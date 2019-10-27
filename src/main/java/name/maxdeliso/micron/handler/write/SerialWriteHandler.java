@@ -20,7 +20,10 @@ public class SerialWriteHandler implements WriteHandler {
 
   @Override
   public boolean handleWritablePeer(final SelectionKey key, final Peer peer) {
-    selectionKeyToggleQueueAdder.disableAndEnqueueEnableInterest(key, SelectionKey.OP_WRITE);
+    final int writeOrder = peerRegistry.getReadOrder(peer);
+
+    selectionKeyToggleQueueAdder
+        .disableAndEnqueueEnableInterest(key, SelectionKey.OP_WRITE, 1 + writeOrder);
 
     if (peer.position() == messageStore.position()) {
       log.trace("nothing to write, peer {} is caught up", peer);
@@ -40,6 +43,7 @@ public class SerialWriteHandler implements WriteHandler {
 
       final var bufferToWrite = ByteBuffer.wrap(messageToWrite);
       final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
+      peer.countBytesTx(bytesWritten);
 
       log.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);
     } catch (final IOException ioe) {

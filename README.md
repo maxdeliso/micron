@@ -43,7 +43,7 @@ you should see as and bs interleaved in the output, roughly equally, and this wi
 * https://docs.oracle.com/javase/8/docs/api/java/nio/channels/SocketChannel.html
 * https://en.wikipedia.org/wiki/Circular_buffer
 
-## Running in Docker
+## Building and running in Docker
 
 1. `docker build -t micron .`
 1. `docker run -p 1337:1337 micron:latest`

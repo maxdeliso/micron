@@ -9,7 +9,7 @@ public class Arguments {
 
   private static final int DEFAULT_MAX_MESSAGES = 4096;
 
-  private static final int DEFAULT_BACKOFF_DURATION_MILLIS = 1;
+  private static final int DEFAULT_BACKOFF_DURATION_MILLIS = 100;
 
   @Parameter(names = {"--help", "-h"})
   private boolean help = false;

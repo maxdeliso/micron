@@ -22,7 +22,12 @@ public class SerialReadHandler implements ReadHandler {
 
   @Override
   public boolean handleReadablePeer(final SelectionKey key, final Peer peer) {
-    selectionKeyToggleQueueAdder.disableAndEnqueueEnableInterest(key, SelectionKey.OP_READ);
+    final int readOrder = peerRegistry.getReadOrder(peer);
+
+    selectionKeyToggleQueueAdder
+        .disableAndEnqueueEnableInterest(key, SelectionKey.OP_READ, 1 + readOrder);
+
+    log.trace("handling read for peer {} with order {}", peer, readOrder);
 
     final int bytesRead = performRead(peer);
     final byte[] incomingBytes;
@@ -38,6 +43,7 @@ public class SerialReadHandler implements ReadHandler {
       incomingBuffer.flip();
       incomingBuffer.get(incomingBytes, 0, bytesRead);
       incomingBuffer.rewind();
+      peer.countBytesRx(incomingBytes.length);
     }
 
     return Optional.ofNullable(incomingBytes).map(messageStore::add).orElse(false);
