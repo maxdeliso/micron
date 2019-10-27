@@ -14,6 +14,9 @@ public class Arguments {
   @Parameter(names = {"--help", "-h"})
   private boolean help = false;
 
+  @Parameter(names = {"--verbose", "-v"})
+  private boolean verbose = false;
+
   @Parameter(names = {"--port", "-p"})
   private int port = DEFAULT_SERVER_PORT;
 
@@ -28,6 +31,10 @@ public class Arguments {
 
   public boolean isHelp() {
     return help;
+  }
+
+  public boolean isVerbose() {
+    return verbose;
   }
 
   public int getPort() {

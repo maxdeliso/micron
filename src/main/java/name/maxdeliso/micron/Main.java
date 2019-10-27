@@ -20,6 +20,8 @@ import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
 import name.maxdeliso.micron.slots.InMemorySlotManager;
 import name.maxdeliso.micron.toggle.DelayedToggle;
 import name.maxdeliso.micron.toggle.DelayedToggler;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.slf4j.LoggerFactory;
 
 @Slf4j
@@ -35,6 +37,10 @@ final class Main {
       jcommander.usage();
 
       return;
+    }
+
+    if (arguments.isVerbose()) {
+      Configurator.setRootLevel(Level.TRACE);
     }
 
     final var slotManager = new InMemorySlotManager(arguments.getMaxMessages());
