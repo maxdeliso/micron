@@ -2,6 +2,7 @@ package name.maxdeliso.micron.params;
 
 import com.beust.jcommander.Parameter;
 
+@SuppressWarnings({"CanBeFinal", "FieldMayBeFinal"})
 public class Arguments {
   private static final int DEFAULT_SERVER_PORT = 1337;
 

@@ -12,11 +12,6 @@ public class InMemorySlotManager implements SlotManager {
   }
 
   @Override
-  public boolean positionOccupied(int pos) {
-    return occupationCounts.get(pos) > 0;
-  }
-
-  @Override
   public void incrementOccupants(int pos) {
     occupationCounts.incrementAndGet(pos);
   }

@@ -13,11 +13,14 @@ import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import name.maxdeliso.micron.looper.EventLooper;
 import name.maxdeliso.micron.looper.SynchronousEventStreamLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
+import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.params.Arguments;
 import name.maxdeliso.micron.peer.InMemoryPeerRegistry;
 import name.maxdeliso.micron.slots.InMemorySlotManager;
+import name.maxdeliso.micron.slots.SlotManager;
 import name.maxdeliso.micron.toggle.DelayedToggle;
 import name.maxdeliso.micron.toggle.DelayedToggler;
 import org.apache.logging.log4j.Level;
@@ -43,11 +46,14 @@ final class Main {
       Configurator.setRootLevel(Level.TRACE);
     }
 
-    final var slotManager = new InMemorySlotManager(arguments.getMaxMessages());
+    final SlotManager slotManager =
+        new InMemorySlotManager(arguments.getMaxMessages());
 
-    final var messageStore = new InMemoryMessageStore(slotManager, arguments.getBufferSize());
+    final RingBufferMessageStore messageStore =
+        new InMemoryMessageStore(slotManager, arguments.getBufferSize());
 
-    final var peerRegistry = new InMemoryPeerRegistry(slotManager, messageStore);
+    final var peerRegistry =
+        new InMemoryPeerRegistry(slotManager, messageStore);
 
     final var incomingBuffer = ByteBuffer.allocateDirect(arguments.getBufferSize());
 
@@ -64,7 +70,7 @@ final class Main {
 
     reporter.start(1, TimeUnit.SECONDS);
 
-    final var looper =
+    final EventLooper looper =
         new SynchronousEventStreamLooper(
             new InetSocketAddress(arguments.getPort()),
             peerRegistry,
@@ -82,7 +88,10 @@ final class Main {
             .setUncaughtExceptionHandler(
                 (thread, throwable) -> {
                   log.error("delay queue thread {} failed", thread, throwable);
-                  looper.halt();
+
+                  if (!looper.halt()) {
+                    log.warn("failed to halt looper");
+                  }
                 }
             ).build());
 
@@ -92,7 +101,9 @@ final class Main {
 
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       log.trace("sending halt to looper...");
-      looper.halt();
+      if (!looper.halt()) {
+        log.warn("failed to halt looper");
+      }
     }));
 
     try {
@@ -105,11 +116,5 @@ final class Main {
         toggleExecutor.shutdownNow();
       }
     }
-  }
-
-  private static void interruptFailure(final InterruptedException ie) {
-    Thread.currentThread().interrupt();
-    log.error("interrupted", ie);
-    throw new RuntimeException(ie);
   }
 }

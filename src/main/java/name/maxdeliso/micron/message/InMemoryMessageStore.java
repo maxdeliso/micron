@@ -52,9 +52,4 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
     return position.get();
   }
 
-  @Override
-  public int size() {
-    return this.messages.size();
-  }
-
 }

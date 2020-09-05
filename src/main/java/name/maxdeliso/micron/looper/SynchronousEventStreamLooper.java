@@ -27,19 +27,15 @@ import name.maxdeliso.micron.handler.write.WriteHandler;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeer;
 import name.maxdeliso.micron.peer.PeerRegistry;
-import name.maxdeliso.micron.selector.NonBlockingAcceptorSelector;
-import name.maxdeliso.micron.selector.PeerCountingReadWriteSelector;
 import name.maxdeliso.micron.toggle.DelayedToggle;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 
+
 @Slf4j
-public class SynchronousEventStreamLooper implements
-    EventLooper,
-    PeerCountingReadWriteSelector,
-    NonBlockingAcceptorSelector {
+public class SynchronousEventStreamLooper implements EventLooper {
 
   private final SocketAddress socketAddress;
-  private final PeerRegistry peerRegistry;
+  private final PeerRegistry<InMemoryPeer> peerRegistry;
   private final SelectorProvider selectorProvider;
 
   private final AtomicReference<ServerSocketChannel> serverSocketChannelRef
@@ -73,7 +69,7 @@ public class SynchronousEventStreamLooper implements
    * @param metrics             capture metrics about performance.
    */
   public SynchronousEventStreamLooper(final SocketAddress socketAddress,
-                                      final PeerRegistry peerRegistry,
+                                      final PeerRegistry<InMemoryPeer> peerRegistry,
                                       final RingBufferMessageStore messageStore,
                                       final SelectorProvider selectorProvider,
                                       final ByteBuffer incomingBuffer,
@@ -178,15 +174,10 @@ public class SynchronousEventStreamLooper implements
   }
 
   @Override
-  public boolean alive() {
-    return starting.get() || looping.get();
-  }
-
-  @Override
-  public void halt() {
+  public boolean halt() {
     if (starting.get()) {
       log.trace("looper is still starting");
-      return;
+      return false;
     }
 
     if (looping.get()) {
@@ -194,7 +185,7 @@ public class SynchronousEventStreamLooper implements
       looping.set(false);
     } else {
       log.info("looper is already done looping");
-      return;
+      return true;
     }
 
     var closeSucceeded = Optional
@@ -213,21 +204,21 @@ public class SynchronousEventStreamLooper implements
         .orElse(false);
 
     if (!closeSucceeded) {
-      return;
+      return false;
     }
 
     Optional
         .ofNullable(selectorRef.get())
         .ifPresentOrElse(Selector::wakeup, () -> log.warn("select ref was absent during halt..."));
 
+    return true;
   }
 
   private boolean maskOpSet(final SelectionKey selectionKey, final int mask) {
     return (selectionKey.interestOps() & mask) == mask;
   }
 
-  @Override
-  public void handleAccept(
+  private void handleAccept(
       ServerSocketChannel serverSocketChannel,
       Selector selector,
       SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder,
@@ -251,37 +242,33 @@ public class SynchronousEventStreamLooper implements
     peerConsumer.accept(socketChannel, peerKey);
   }
 
-  @Override
-  public void associatePeer(
+  private void associatePeer(
       SocketChannel socketChannel,
       SelectionKey peerKey,
-      PeerRegistry peerRegistry) {
+      PeerRegistry<InMemoryPeer> peerRegistry) {
     final var peer = peerRegistry.allocatePeer(socketChannel);
     peerKey.attach(peer.getIndex());
   }
 
-  @Override
   public Optional<InMemoryPeer> lookupPeer(
       SelectionKey selectionKey,
-      PeerRegistry peerRegistry) {
+      PeerRegistry<InMemoryPeer> peerRegistry) {
     return Optional.ofNullable(selectionKey)
         .map(key -> (Integer) key.attachment())
         .flatMap(peerRegistry::get);
   }
 
-  @Override
-  public void handleReadableKey(
+  private void handleReadableKey(
       SelectionKey readSelectedKey,
-      PeerRegistry peerRegistry,
+      PeerRegistry<InMemoryPeer> peerRegistry,
       Consumer<InMemoryPeer> peerConsumer) {
     lookupPeer(readSelectedKey, peerRegistry)
         .ifPresent(peerConsumer);
   }
 
-  @Override
-  public void handleWritableKey(
+  private void handleWritableKey(
       SelectionKey writeSelectedKey,
-      PeerRegistry peerRegistry,
+      PeerRegistry<InMemoryPeer> peerRegistry,
       BiConsumer<SelectionKey, InMemoryPeer> peerConsumer) {
     lookupPeer(writeSelectedKey, peerRegistry)
         .ifPresent(peer -> peerConsumer.accept(writeSelectedKey, peer));

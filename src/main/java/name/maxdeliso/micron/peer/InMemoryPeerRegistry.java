@@ -16,7 +16,7 @@ import net.jcip.annotations.ThreadSafe;
 @Slf4j
 @RequiredArgsConstructor
 @ThreadSafe
-public final class InMemoryPeerRegistry implements PeerRegistry {
+public final class InMemoryPeerRegistry implements PeerRegistry<InMemoryPeer> {
 
   private final AtomicInteger peerCounter;
 
@@ -81,5 +81,4 @@ public final class InMemoryPeerRegistry implements PeerRegistry {
         .collect(Collectors.toList())
         .indexOf(peer);
   }
-
 }

@@ -16,7 +16,7 @@ public class SerialWriteHandler implements WriteHandler {
 
   private final RingBufferMessageStore messageStore;
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
-  private final PeerRegistry peerRegistry;
+  private final PeerRegistry<InMemoryPeer> peerRegistry;
 
   @Override
   public boolean handleWritablePeer(final SelectionKey key, final InMemoryPeer peer) {

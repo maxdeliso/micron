@@ -11,13 +11,12 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public class SelectionKeyToggleQueueAdder implements ToggleQueueAdder {
+public class SelectionKeyToggleQueueAdder {
 
   private final Duration enableDuration;
   private final AtomicReference<Selector> selectorAtomicReference;
   private final DelayQueue<DelayedToggle> toggleDelayQueue;
 
-  @Override
   public void disableAndEnqueueEnableInterest(final SelectionKey key, final int mask, int weight) {
     try {
       if ((key.interestOpsAnd(~mask) & mask) == mask) {
@@ -30,8 +29,7 @@ public class SelectionKeyToggleQueueAdder implements ToggleQueueAdder {
     }
   }
 
-  @Override
-  public void enqueueEnableInterest(final SelectionKey key, final int mask, int weight) {
+  private void enqueueEnableInterest(final SelectionKey key, final int mask, int weight) {
     var delayedEnableToggle = new DelayedToggle(
         selectorAtomicReference,
         enableDuration.multipliedBy(weight),

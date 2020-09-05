@@ -2,12 +2,8 @@ package name.maxdeliso.micron.message;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
-import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.slots.SlotManager;
 import org.junit.Before;
 import org.junit.Test;

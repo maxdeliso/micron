@@ -9,19 +9,19 @@ import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
 @Value
-public final class InMemoryPeer implements RingPositionTracker {
+public class InMemoryPeer {
 
-  private final int index;
+  int index;
 
-  private final AtomicInteger position;
+  AtomicInteger position;
 
-  private final SocketChannel socketChannel;
+  SocketChannel socketChannel;
 
-  private final SlotManager slotManager;
+  SlotManager slotManager;
 
-  private final AtomicLong netBytesRX;
+  AtomicLong netBytesRX;
 
-  private final AtomicLong netBytesTX;
+  AtomicLong netBytesTX;
 
   /**
    * Allocate a peer.
@@ -45,7 +45,6 @@ public final class InMemoryPeer implements RingPositionTracker {
     slotManager.incrementOccupants(initialPosition);
   }
 
-  @Override
   public int advancePosition() {
     int prevPosition = position.get();
     int newPosition = position.updateAndGet(pos -> (pos + 1) % slotManager.size());
@@ -54,7 +53,6 @@ public final class InMemoryPeer implements RingPositionTracker {
     return newPosition;
   }
 
-  @Override
   public int position() {
     return this.position.get();
   }
@@ -69,9 +67,5 @@ public final class InMemoryPeer implements RingPositionTracker {
 
   public long getNetBytesRX() {
     return netBytesRX.get();
-  }
-
-  public long getNetBytesTX() {
-    return netBytesTX.get();
   }
 }

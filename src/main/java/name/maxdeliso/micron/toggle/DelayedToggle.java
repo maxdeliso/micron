@@ -47,11 +47,7 @@ public class DelayedToggle implements Delayed {
 
   @Override
   public int compareTo(final Delayed other) {
-    if (other instanceof DelayedToggle) {
-      return Long.compare(fireTime, ((DelayedToggle) other).fireTime);
-    } else {
-      return Long.compare(getDelay(TimeUnit.NANOSECONDS), other.getDelay(TimeUnit.NANOSECONDS));
-    }
+    return Long.compare(getDelay(TimeUnit.NANOSECONDS), other.getDelay(TimeUnit.NANOSECONDS));
   }
 
   /**

@@ -23,11 +23,9 @@ public class InMemoryInMemoryPeerRegistryTest {
 
   private final int MAX_MESSAGES = 8;
 
-  private SelectorProvider selectorProvider;
-
   private SocketChannel socketChannel;
 
-  private PeerRegistry peerRegistry;
+  private PeerRegistry<InMemoryPeer> peerRegistry;
 
   @Mock
   private SlotManager slotManager;
@@ -39,7 +37,7 @@ public class InMemoryInMemoryPeerRegistryTest {
   public void setup() {
     when(slotManager.size()).thenReturn(MAX_MESSAGES);
 
-    selectorProvider = new TestSelectorProvider();
+    SelectorProvider selectorProvider = new TestSelectorProvider();
     socketChannel = new TestSocketChannel(selectorProvider);
     peerRegistry = new InMemoryPeerRegistry(slotManager, ringBufferMessageStore);
   }

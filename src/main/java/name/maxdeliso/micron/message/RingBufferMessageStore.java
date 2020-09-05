@@ -6,6 +6,4 @@ public interface RingBufferMessageStore {
   byte[] get(int messageIdx);
 
   int position();
-
-  int size();
 }

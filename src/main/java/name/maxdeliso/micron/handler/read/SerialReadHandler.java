@@ -16,7 +16,7 @@ import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 public class SerialReadHandler implements ReadHandler {
 
   private final ByteBuffer incomingBuffer;
-  private final PeerRegistry peerRegistry;
+  private final PeerRegistry<InMemoryPeer> peerRegistry;
   private final RingBufferMessageStore messageStore;
   private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
 

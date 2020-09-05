@@ -3,7 +3,6 @@ package name.maxdeliso.micron.looper;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import java.io.IOException;
@@ -14,6 +13,7 @@ import java.util.Arrays;
 import java.util.concurrent.DelayQueue;
 import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
+import name.maxdeliso.micron.peer.InMemoryPeer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.support.TestSelectorProvider;
 import name.maxdeliso.micron.toggle.DelayedToggle;
@@ -35,7 +35,7 @@ public class SynchronousEventStreamLooperTest {
   private SocketAddress socketAddress;
 
   @Mock
-  private PeerRegistry peerRegistry;
+  private PeerRegistry<InMemoryPeer> peerRegistry;
 
   @Mock
   private RingBufferMessageStore messageStore;
@@ -80,9 +80,9 @@ public class SynchronousEventStreamLooperTest {
 
   private Thread buildJoinerThread(final SynchronousEventStreamLooper looper) {
     return new Thread(() -> {
-      while (looper.alive()) {
-        log.trace("sending halt");
-        looper.halt();
+      log.trace("sending halt");
+      while (!looper.halt()) {
+        log.warn("sending additional halt");
       }
     });
   }
