@@ -20,18 +20,18 @@
 2. ``yes a | nc localhost 1337``
 3. ``yes b | nc localhost 1337``
 
-Note: requires Java 14 or greater
+Note: requires Java 16 or greater
 
 You should see as and bs interleaved in the output, roughly equally,
 and this will generalize to as many connected peers as there are.
 
-You can tail the logs using: ``tail -f logs/metrics.log``
+You can tail the metrics using: ``tail -f logs/metrics.log``
 
 This will show some basic metrics and gauges about performance.
 
 ## References
 
-* https://docs.oracle.com/javase/8/docs/api/java/nio/channels/SocketChannel.html
+* https://docs.oracle.com/en/java/javase/16/docs/api/java.base/java/nio/channels/SocketChannel.html
 * https://en.wikipedia.org/wiki/Circular_buffer
 
 ## Building and running in Docker
