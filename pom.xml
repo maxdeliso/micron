@@ -28,25 +28,21 @@
             <artifactId>log4j-slf4j-impl</artifactId>
             <version>2.14.1</version>
         </dependency>
-
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
             <version>4.2.4</version>
         </dependency>
-
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>31.0.1-jre</version>
         </dependency>
-
         <dependency>
             <groupId>com.beust</groupId>
             <artifactId>jcommander</artifactId>
             <version>1.81</version>
         </dependency>
-
         <!-- for asynchronous logging -->
         <dependency>
             <groupId>com.lmax</groupId>
@@ -54,14 +50,13 @@
             <version>3.4.4</version>
             <scope>runtime</scope>
         </dependency>
-
+        <!-- test dependencies -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>4.1.0</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
