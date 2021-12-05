@@ -7,20 +7,21 @@ import java.util.Optional;
 
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeer;
+import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public record SerialReadHandler(ByteBuffer incomingBuffer,
-                                PeerRegistry<InMemoryPeer> peerRegistry,
+                                PeerRegistry<Peer> peerRegistry,
                                 RingBufferMessageStore messageStore,
                                 SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder) implements ReadHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(SerialReadHandler.class);
 
   @Override
-  public void handleReadablePeer(final SelectionKey key, final InMemoryPeer peer) {
+  public void handleReadablePeer(final SelectionKey key, final Peer peer) {
     final int readOrder = peerRegistry.getReadOrder(peer);
 
     selectionKeyToggleQueueAdder
@@ -48,7 +49,7 @@ public record SerialReadHandler(ByteBuffer incomingBuffer,
     Optional.ofNullable(incomingBytes).map(messageStore::add);
   }
 
-  private int performRead(final InMemoryPeer peer) {
+  private int performRead(final Peer peer) {
     var evictPeer = false;
     final int finalBytesRead;
 

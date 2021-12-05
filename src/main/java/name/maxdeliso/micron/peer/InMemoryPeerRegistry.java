@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public final class InMemoryPeerRegistry implements PeerRegistry<InMemoryPeer> {
+public final class InMemoryPeerRegistry implements PeerRegistry<Peer> {
 
   private static final Logger LOG = LoggerFactory.getLogger(InMemoryPeerRegistry.class);
 
@@ -35,12 +35,12 @@ public final class InMemoryPeerRegistry implements PeerRegistry<InMemoryPeer> {
   }
 
   @Override
-  public Optional<InMemoryPeer> get(final int index) {
+  public Optional<Peer> get(final int index) {
     return Optional.ofNullable(peerMap.get(index));
   }
 
   @Override
-  public InMemoryPeer allocatePeer(final SocketChannel socketChannel) {
+  public Peer allocatePeer(final SocketChannel socketChannel) {
     final var newPeerNumber = peerCounter.get();
     final var initialPosition = slotManager.nextNotSet(ringBufferMessageStore.position());
     final var newPeer = new InMemoryPeer(newPeerNumber, initialPosition, socketChannel, slotManager);
@@ -55,7 +55,7 @@ public final class InMemoryPeerRegistry implements PeerRegistry<InMemoryPeer> {
    * @param peer peer to be evicted.
    */
   @Override
-  public void evictPeer(final InMemoryPeer peer) {
+  public void evictPeer(final Peer peer) {
     try {
       peer.socketChannel().close();
     } catch (final IOException ioe) {
@@ -72,11 +72,11 @@ public final class InMemoryPeerRegistry implements PeerRegistry<InMemoryPeer> {
   }
 
   @Override
-  public int getReadOrder(final InMemoryPeer peer) {
+  public int getReadOrder(final Peer peer) {
     return peerMap
         .values()
         .stream()
-        .sorted(Comparator.comparingLong(InMemoryPeer::getNetBytesRX))
+        .sorted(Comparator.comparingLong(InMemoryPeer::netBytesRX))
         .toList()
         .indexOf(peer);
   }

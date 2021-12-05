@@ -14,6 +14,7 @@ import java.util.concurrent.DelayQueue;
 
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeer;
+import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.support.TestSelectorProvider;
 import name.maxdeliso.micron.toggle.DelayedToggle;
@@ -37,7 +38,7 @@ public class SynchronousEventStreamLooperTest {
   private SocketAddress socketAddress;
 
   @Mock
-  private PeerRegistry<InMemoryPeer> peerRegistry;
+  private PeerRegistry<Peer> peerRegistry;
 
   @Mock
   private RingBufferMessageStore messageStore;

@@ -25,6 +25,7 @@ import name.maxdeliso.micron.handler.write.SerialWriteHandler;
 import name.maxdeliso.micron.handler.write.WriteHandler;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeer;
+import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.toggle.DelayedToggle;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
@@ -37,7 +38,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
   private static final Logger LOG = LoggerFactory.getLogger(SynchronousEventStreamLooper.class);
 
   private final SocketAddress socketAddress;
-  private final PeerRegistry<InMemoryPeer> peerRegistry;
+  private final PeerRegistry<Peer> peerRegistry;
   private final SelectorProvider selectorProvider;
 
   private final AtomicReference<ServerSocketChannel> serverSocketChannelRef
@@ -71,7 +72,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
    * @param metrics             capture metrics about performance.
    */
   public SynchronousEventStreamLooper(final SocketAddress socketAddress,
-                                      final PeerRegistry<InMemoryPeer> peerRegistry,
+                                      final PeerRegistry<Peer> peerRegistry,
                                       final RingBufferMessageStore messageStore,
                                       final SelectorProvider selectorProvider,
                                       final ByteBuffer incomingBuffer,
@@ -117,8 +118,10 @@ public class SynchronousEventStreamLooper implements EventLooper {
       socketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
       LOG.info("bound to {}, entering event loop", socketAddress);
+
       looping.set(true);
       starting.set(false);
+
       while (looping.get() && serverSocketChannel.isOpen()) {
         selector.select();
 
@@ -138,7 +141,8 @@ public class SynchronousEventStreamLooper implements EventLooper {
           if (selectedKey.isValid()
               && selectedKey.isReadable()
               && maskOpSet(selectedKey, SelectionKey.OP_READ)) {
-            handleReadableKey(selectedKey,
+            handleReadableKey(
+                selectedKey,
                 peerRegistry, peer -> readHandler.handleReadablePeer(selectedKey, peer));
 
             readEventsMeter.mark();
@@ -229,14 +233,14 @@ public class SynchronousEventStreamLooper implements EventLooper {
   private void associatePeer(
       SocketChannel socketChannel,
       SelectionKey peerKey,
-      PeerRegistry<InMemoryPeer> peerRegistry) {
+      PeerRegistry<Peer> peerRegistry) {
     final var peer = peerRegistry.allocatePeer(socketChannel);
     peerKey.attach(peer.index());
   }
 
-  public Optional<InMemoryPeer> lookupPeer(
+  public Optional<Peer> lookupPeer(
       SelectionKey selectionKey,
-      PeerRegistry<InMemoryPeer> peerRegistry) {
+      PeerRegistry<Peer> peerRegistry) {
     return Optional.ofNullable(selectionKey)
         .map(key -> (Integer) key.attachment())
         .flatMap(peerRegistry::get);
@@ -244,16 +248,16 @@ public class SynchronousEventStreamLooper implements EventLooper {
 
   private void handleReadableKey(
       SelectionKey readSelectedKey,
-      PeerRegistry<InMemoryPeer> peerRegistry,
-      Consumer<InMemoryPeer> peerConsumer) {
+      PeerRegistry<Peer> peerRegistry,
+      Consumer<Peer> peerConsumer) {
     lookupPeer(readSelectedKey, peerRegistry)
         .ifPresent(peerConsumer);
   }
 
   private void handleWritableKey(
       SelectionKey writeSelectedKey,
-      PeerRegistry<InMemoryPeer> peerRegistry,
-      BiConsumer<SelectionKey, InMemoryPeer> peerConsumer) {
+      PeerRegistry<Peer> peerRegistry,
+      BiConsumer<SelectionKey, Peer> peerConsumer) {
     lookupPeer(writeSelectedKey, peerRegistry)
         .ifPresent(peer -> peerConsumer.accept(writeSelectedKey, peer));
   }

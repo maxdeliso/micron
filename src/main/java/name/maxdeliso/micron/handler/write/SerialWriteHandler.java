@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeer;
+import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 import org.slf4j.Logger;
@@ -13,12 +14,12 @@ import org.slf4j.LoggerFactory;
 
 public record SerialWriteHandler(RingBufferMessageStore messageStore,
                                  SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder,
-                                 PeerRegistry<InMemoryPeer> peerRegistry) implements WriteHandler {
+                                 PeerRegistry<Peer> peerRegistry) implements WriteHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(SerialWriteHandler.class);
 
   @Override
-  public void handleWritablePeer(final SelectionKey key, final InMemoryPeer peer) {
+  public void handleWritablePeer(final SelectionKey key, final Peer peer) {
     final int writeOrder = peerRegistry.getReadOrder(peer);
 
     selectionKeyToggleQueueAdder

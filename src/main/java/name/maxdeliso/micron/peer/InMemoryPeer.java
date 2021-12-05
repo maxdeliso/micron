@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import name.maxdeliso.micron.slots.SlotManager;
 
-public class InMemoryPeer {
+public class InMemoryPeer implements Peer {
 
   int index;
 
@@ -43,6 +43,7 @@ public class InMemoryPeer {
     slotManager.incrementOccupants(initialPosition);
   }
 
+  @Override
   public int advancePosition() {
     int prevPosition = position.get();
     int newPosition = position.updateAndGet(pos -> (pos + 1) % slotManager.size());
@@ -51,24 +52,30 @@ public class InMemoryPeer {
     return newPosition;
   }
 
+  @Override
   public int index() { return index; }
 
+  @Override
   public int position() {
     return this.position.get();
   }
 
+  @Override
   public void countBytesRx(long bytes) {
     this.netBytesRX.addAndGet(bytes);
   }
 
+  @Override
   public void countBytesTx(long bytes) {
     this.netBytesTX.addAndGet(bytes);
   }
 
-  public long getNetBytesRX() {
+  @Override
+  public long netBytesRX() {
     return netBytesRX.get();
   }
 
+  @Override
   public SocketChannel socketChannel() { return socketChannel; }
 
   @Override
