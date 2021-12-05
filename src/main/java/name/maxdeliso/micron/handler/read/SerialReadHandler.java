@@ -14,7 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public record SerialReadHandler(ByteBuffer incomingBuffer,
-                                PeerRegistry<Peer> peerRegistry,
+                                PeerRegistry peerRegistry,
                                 RingBufferMessageStore messageStore,
                                 SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder) implements ReadHandler {
 

@@ -38,7 +38,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
   private static final Logger LOG = LoggerFactory.getLogger(SynchronousEventStreamLooper.class);
 
   private final SocketAddress socketAddress;
-  private final PeerRegistry<Peer> peerRegistry;
+  private final PeerRegistry peerRegistry;
   private final SelectorProvider selectorProvider;
 
   private final AtomicReference<ServerSocketChannel> serverSocketChannelRef
@@ -72,7 +72,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
    * @param metrics             capture metrics about performance.
    */
   public SynchronousEventStreamLooper(final SocketAddress socketAddress,
-                                      final PeerRegistry<Peer> peerRegistry,
+                                      final PeerRegistry peerRegistry,
                                       final RingBufferMessageStore messageStore,
                                       final SelectorProvider selectorProvider,
                                       final ByteBuffer incomingBuffer,
@@ -233,14 +233,14 @@ public class SynchronousEventStreamLooper implements EventLooper {
   private void associatePeer(
       SocketChannel socketChannel,
       SelectionKey peerKey,
-      PeerRegistry<Peer> peerRegistry) {
+      PeerRegistry peerRegistry) {
     final var peer = peerRegistry.allocatePeer(socketChannel);
     peerKey.attach(peer.index());
   }
 
   public Optional<Peer> lookupPeer(
       SelectionKey selectionKey,
-      PeerRegistry<Peer> peerRegistry) {
+      PeerRegistry peerRegistry) {
     return Optional.ofNullable(selectionKey)
         .map(key -> (Integer) key.attachment())
         .flatMap(peerRegistry::get);
@@ -248,7 +248,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
 
   private void handleReadableKey(
       SelectionKey readSelectedKey,
-      PeerRegistry<Peer> peerRegistry,
+      PeerRegistry peerRegistry,
       Consumer<Peer> peerConsumer) {
     lookupPeer(readSelectedKey, peerRegistry)
         .ifPresent(peerConsumer);
@@ -256,7 +256,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
 
   private void handleWritableKey(
       SelectionKey writeSelectedKey,
-      PeerRegistry<Peer> peerRegistry,
+      PeerRegistry peerRegistry,
       BiConsumer<SelectionKey, Peer> peerConsumer) {
     lookupPeer(writeSelectedKey, peerRegistry)
         .ifPresent(peer -> peerConsumer.accept(writeSelectedKey, peer));

@@ -3,14 +3,14 @@ package name.maxdeliso.micron.peer;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
 
-public interface PeerRegistry<P> {
-  Optional<P> get(int index);
+public interface PeerRegistry {
+  Optional<Peer> get(int index);
 
-  P allocatePeer(SocketChannel clientChannel);
+  Peer allocatePeer(SocketChannel clientChannel);
 
-  void evictPeer(P peer);
+  void evictPeer(Peer peer);
 
   long size();
 
-  int getReadOrder(P peer);
+  int getReadOrder(Peer peer);
 }

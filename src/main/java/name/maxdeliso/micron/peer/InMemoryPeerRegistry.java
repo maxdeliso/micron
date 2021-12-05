@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public final class InMemoryPeerRegistry implements PeerRegistry<Peer> {
+public final class InMemoryPeerRegistry implements PeerRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(InMemoryPeerRegistry.class);
 

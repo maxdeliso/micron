@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 public record SerialWriteHandler(RingBufferMessageStore messageStore,
                                  SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder,
-                                 PeerRegistry<Peer> peerRegistry) implements WriteHandler {
+                                 PeerRegistry peerRegistry) implements WriteHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(SerialWriteHandler.class);
 

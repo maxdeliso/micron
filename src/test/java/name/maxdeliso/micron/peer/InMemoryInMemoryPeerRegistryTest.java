@@ -25,7 +25,7 @@ public class InMemoryInMemoryPeerRegistryTest {
 
   private SocketChannel socketChannel;
 
-  private PeerRegistry<Peer> peerRegistry;
+  private PeerRegistry peerRegistry;
 
   @Mock
   private SlotManager slotManager;

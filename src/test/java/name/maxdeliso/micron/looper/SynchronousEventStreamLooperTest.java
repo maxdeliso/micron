@@ -38,7 +38,7 @@ public class SynchronousEventStreamLooperTest {
   private SocketAddress socketAddress;
 
   @Mock
-  private PeerRegistry<Peer> peerRegistry;
+  private PeerRegistry peerRegistry;
 
   @Mock
   private RingBufferMessageStore messageStore;
