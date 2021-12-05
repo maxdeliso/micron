@@ -167,10 +167,9 @@ public class SynchronousEventStreamLooper implements EventLooper {
   }
 
   @Override
-  public boolean halt() {
+  public void halt() {
     if (starting.get()) {
       LOG.trace("looper is still starting");
-      return false;
     }
 
     if (looping.get()) {
@@ -178,10 +177,9 @@ public class SynchronousEventStreamLooper implements EventLooper {
       looping.set(false);
     } else {
       LOG.info("looper is already done looping");
-      return true;
     }
 
-    var closeSucceeded = Optional
+    Optional
         .ofNullable(serverSocketChannelRef.get())
         .filter(AbstractInterruptibleChannel::isOpen)
         .map(ss -> {
@@ -193,18 +191,11 @@ public class SynchronousEventStreamLooper implements EventLooper {
             LOG.trace("warn failed to close server socket channel during halt...", ioe);
             return false;
           }
-        })
-        .orElse(false);
-
-    if (!closeSucceeded) {
-      return false;
-    }
+        });
 
     Optional
         .ofNullable(selectorRef.get())
         .ifPresentOrElse(Selector::wakeup, () -> LOG.warn("select ref was absent during halt..."));
-
-    return true;
   }
 
   private boolean maskOpSet(final SelectionKey selectionKey, final int mask) {
@@ -240,7 +231,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
       SelectionKey peerKey,
       PeerRegistry<InMemoryPeer> peerRegistry) {
     final var peer = peerRegistry.allocatePeer(socketChannel);
-    peerKey.attach(peer.getIndex());
+    peerKey.attach(peer.index());
   }
 
   public Optional<InMemoryPeer> lookupPeer(

@@ -39,7 +39,7 @@ public record SerialWriteHandler(RingBufferMessageStore messageStore,
       }
 
       final var bufferToWrite = ByteBuffer.wrap(messageToWrite);
-      final var bytesWritten = peer.getSocketChannel().write(bufferToWrite);
+      final var bytesWritten = peer.socketChannel().write(bufferToWrite);
       peer.countBytesTx(bytesWritten);
 
       LOG.trace("wrote {} bytes to peer {} to advance to {}", bytesWritten, peer, newPosition);

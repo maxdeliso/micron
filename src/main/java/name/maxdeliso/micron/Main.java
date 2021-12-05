@@ -12,7 +12,6 @@ import java.time.Duration;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import name.maxdeliso.micron.looper.EventLooper;
 import name.maxdeliso.micron.looper.SynchronousEventStreamLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
@@ -90,10 +89,7 @@ final class Main {
             .setUncaughtExceptionHandler(
                 (thread, throwable) -> {
                   log.error("delay queue thread {} failed", thread, throwable);
-
-                  if (!looper.halt()) {
-                    log.warn("failed to halt looper");
-                  }
+                  looper.halt();
                 }
             ).build());
 
@@ -103,9 +99,7 @@ final class Main {
 
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       log.trace("sending halt to looper...");
-      if (!looper.halt()) {
-        log.warn("failed to halt looper");
-      }
+      looper.halt();
     }));
 
     try {

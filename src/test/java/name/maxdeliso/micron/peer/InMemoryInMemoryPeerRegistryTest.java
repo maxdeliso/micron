@@ -49,7 +49,7 @@ public class InMemoryInMemoryPeerRegistryTest {
     final Optional<InMemoryPeer> peerOpt = peerRegistry.get(0);
 
     assertTrue(peerOpt.isPresent());
-    assertEquals(socketChannel, peerOpt.get().getSocketChannel());
+    assertEquals(socketChannel, peerOpt.get().socketChannel());
   }
 
   @Test

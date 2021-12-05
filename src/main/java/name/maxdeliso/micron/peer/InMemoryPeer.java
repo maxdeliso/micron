@@ -1,5 +1,6 @@
 package name.maxdeliso.micron.peer;
 
+import com.google.common.base.MoreObjects;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -50,7 +51,7 @@ public class InMemoryPeer {
     return newPosition;
   }
 
-  public int getIndex() { return index; }
+  public int index() { return index; }
 
   public int position() {
     return this.position.get();
@@ -68,6 +69,17 @@ public class InMemoryPeer {
     return netBytesRX.get();
   }
 
-  public SocketChannel getSocketChannel() { return socketChannel; }
+  public SocketChannel socketChannel() { return socketChannel; }
 
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("index", index)
+        .add("position", position)
+        .add("socketChannel", socketChannel)
+        .add("slotManager", slotManager)
+        .add("netBytesRX", netBytesRX)
+        .add("netBytesTX", netBytesTX)
+        .toString();
+  }
 }

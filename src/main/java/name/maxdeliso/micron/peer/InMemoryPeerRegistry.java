@@ -6,7 +6,6 @@ import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.slots.SlotManager;
@@ -58,11 +57,11 @@ public final class InMemoryPeerRegistry implements PeerRegistry<InMemoryPeer> {
   @Override
   public void evictPeer(final InMemoryPeer peer) {
     try {
-      peer.getSocketChannel().close();
+      peer.socketChannel().close();
     } catch (final IOException ioe) {
       LOG.warn("failed to close channel during peer eviction of {}", peer, ioe);
     } finally {
-      peerMap.remove(peer.getIndex());
+      peerMap.remove(peer.index());
       slotManager.decrementOccupants(peer.position());
     }
   }

@@ -83,9 +83,7 @@ public class SynchronousEventStreamLooperTest {
   private Thread buildJoinerThread(final SynchronousEventStreamLooper looper) {
     return new Thread(() -> {
       LOG.trace("sending halt");
-      while (!looper.halt()) {
-        LOG.warn("sending additional halt");
-      }
+      looper.halt();
     });
   }
 

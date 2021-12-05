@@ -53,7 +53,7 @@ public record SerialReadHandler(ByteBuffer incomingBuffer,
     final int finalBytesRead;
 
     try {
-      final var socketChannel = peer.getSocketChannel();
+      final var socketChannel = peer.socketChannel();
 
       final var bytesRead = socketChannel.read(incomingBuffer);
 

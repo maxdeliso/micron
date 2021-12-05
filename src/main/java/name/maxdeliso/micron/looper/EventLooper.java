@@ -5,5 +5,5 @@ import java.io.IOException;
 public interface EventLooper {
   void loop() throws IOException;
 
-  boolean halt();
+  void halt();
 }
