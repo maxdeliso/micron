@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="WARN" strict="true">
+<Configuration status="DEBUG" strict="true">
     <Properties>
         <Property name="nanoPattern">%d{yyyy-MM-dd'T'HH:mm:ss,nnnnnnnnnXXX}{UTC}</Property>
     </Properties>
@@ -42,7 +42,7 @@
     </Appenders>
 
     <Loggers>
-        <Root level="INFO">
+        <Root level="DEBUG">
             <AppenderRef ref="STDOUT"/>
             <AppenderRef ref="APPLICATION"/>
         </Root>

@@ -1,25 +1,23 @@
 package name.maxdeliso.micron.toggle;
 
 import java.util.concurrent.DelayQueue;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-public class DelayedToggler implements Runnable {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-  private final DelayQueue<DelayedToggle> toggles;
+public record DelayedToggler(
+    DelayQueue<DelayedToggle> delayedToggles) implements Runnable {
 
-  public DelayedToggler(final DelayQueue<DelayedToggle> toggles) {
-    this.toggles = toggles;
-  }
+  private static final Logger LOG = LoggerFactory.getLogger(DelayedToggler.class);
 
   @Override
   public void run() {
     while (true) {
       try {
-        final DelayedToggle delayedToggle = toggles.take();
+        final DelayedToggle delayedToggle = delayedToggles.take();
         delayedToggle.toggle();
       } catch (final InterruptedException ie) {
-        log.warn("interrupted while waiting for a delayed toggle", ie);
+        LOG.warn("interrupted while waiting for a delayed toggle", ie);
         break;
       }
     }

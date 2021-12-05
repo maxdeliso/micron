@@ -3,12 +3,9 @@ package name.maxdeliso.micron.peer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import lombok.Value;
-import name.maxdeliso.micron.slots.SlotManager;
-import net.jcip.annotations.ThreadSafe;
 
-@ThreadSafe
-@Value
+import name.maxdeliso.micron.slots.SlotManager;
+
 public class InMemoryPeer {
 
   int index;
@@ -53,6 +50,8 @@ public class InMemoryPeer {
     return newPosition;
   }
 
+  public int getIndex() { return index; }
+
   public int position() {
     return this.position.get();
   }
@@ -68,4 +67,7 @@ public class InMemoryPeer {
   public long getNetBytesRX() {
     return netBytesRX.get();
   }
+
+  public SocketChannel getSocketChannel() { return socketChannel; }
+
 }

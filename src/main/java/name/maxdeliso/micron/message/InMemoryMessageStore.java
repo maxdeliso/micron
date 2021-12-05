@@ -3,15 +3,14 @@ package name.maxdeliso.micron.message;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import name.maxdeliso.micron.slots.SlotManager;
-import net.jcip.annotations.ThreadSafe;
 
-@Slf4j
-@RequiredArgsConstructor
-@ThreadSafe
+import name.maxdeliso.micron.slots.SlotManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public final class InMemoryMessageStore implements RingBufferMessageStore {
+
+  private static final Logger LOG = LoggerFactory.getLogger(InMemoryMessageStore.class);
 
   private final List<byte[]> messages;
 
@@ -27,7 +26,7 @@ public final class InMemoryMessageStore implements RingBufferMessageStore {
   @Override
   public boolean add(final byte[] received) {
     if (received.length > messageSize) {
-      log.warn("message received ({}) was larger than maximum of {}", received.length, messageSize);
+      LOG.warn("message received ({}) was larger than maximum of {}", received.length, messageSize);
       return false;
     }
 

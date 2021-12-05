@@ -11,7 +11,7 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.DelayQueue;
-import lombok.extern.slf4j.Slf4j;
+
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeer;
 import name.maxdeliso.micron.peer.PeerRegistry;
@@ -22,10 +22,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Slf4j
 @RunWith(MockitoJUnitRunner.class)
 public class SynchronousEventStreamLooperTest {
+  private static final Logger LOG = LoggerFactory.getLogger(SynchronousEventStreamLooperTest.class);
   private static final int TEST_BUFFER_SIZE = 1;
 
   @Mock
@@ -73,22 +75,22 @@ public class SynchronousEventStreamLooperTest {
       try {
         looper.loop();
       } catch (final IOException ioe) {
-        log.warn("I/O exception while looping", ioe);
+        LOG.warn("I/O exception while looping", ioe);
       }
     });
   }
 
   private Thread buildJoinerThread(final SynchronousEventStreamLooper looper) {
     return new Thread(() -> {
-      log.trace("sending halt");
+      LOG.trace("sending halt");
       while (!looper.halt()) {
-        log.warn("sending additional halt");
+        LOG.warn("sending additional halt");
       }
     });
   }
 
   private void joinSerially(final Thread... threads) {
-    log.trace("attempting join of {} threads", threads.length);
+    LOG.trace("attempting join of {} threads", threads.length);
 
     Arrays.stream(threads).forEach(thread -> {
       try {
@@ -98,7 +100,7 @@ public class SynchronousEventStreamLooperTest {
       }
     });
 
-    log.trace("joins completed normally");
+    LOG.trace("joins completed normally");
   }
 
   @Test

@@ -6,26 +6,25 @@ import java.nio.channels.Selector;
 import java.time.Duration;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Slf4j
-@RequiredArgsConstructor
-public class SelectionKeyToggleQueueAdder {
 
-  private final Duration enableDuration;
-  private final AtomicReference<Selector> selectorAtomicReference;
-  private final DelayQueue<DelayedToggle> toggleDelayQueue;
+public record SelectionKeyToggleQueueAdder(Duration enableDuration,
+                                           AtomicReference<Selector> selectorAtomicReference,
+                                           DelayQueue<DelayedToggle> toggleDelayQueue) {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SelectionKeyToggleQueueAdder.class);
 
   public void disableAndEnqueueEnableInterest(final SelectionKey key, final int mask, int weight) {
     try {
       if ((key.interestOpsAnd(~mask) & mask) == mask) {
         enqueueEnableInterest(key, mask, weight);
       } else {
-        log.trace("clearing interest ops had no effect on key {}", key);
+        LOG.trace("clearing interest ops had no effect on key {}", key);
       }
     } catch (final CancelledKeyException cke) {
-      log.warn("key was cancelled", cke);
+      LOG.warn("key was cancelled", cke);
     }
   }
 

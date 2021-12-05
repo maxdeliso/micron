@@ -12,7 +12,7 @@ import java.time.Duration;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
+
 import name.maxdeliso.micron.looper.EventLooper;
 import name.maxdeliso.micron.looper.SynchronousEventStreamLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
@@ -25,10 +25,12 @@ import name.maxdeliso.micron.toggle.DelayedToggle;
 import name.maxdeliso.micron.toggle.DelayedToggler;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Slf4j
 final class Main {
+  private static final Logger log = LoggerFactory.getLogger(Main.class);
+
   public static void main(final String[] args) throws InterruptedException {
     final var arguments = new Arguments();
 

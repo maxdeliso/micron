@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import lombok.extern.slf4j.Slf4j;
 import name.maxdeliso.micron.handler.read.ReadHandler;
 import name.maxdeliso.micron.handler.read.SerialReadHandler;
 import name.maxdeliso.micron.handler.write.SerialWriteHandler;
@@ -29,10 +28,13 @@ import name.maxdeliso.micron.peer.InMemoryPeer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.toggle.DelayedToggle;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
-@Slf4j
 public class SynchronousEventStreamLooper implements EventLooper {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SynchronousEventStreamLooper.class);
 
   private final SocketAddress socketAddress;
   private final PeerRegistry<InMemoryPeer> peerRegistry;
@@ -114,7 +116,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
       serverSocketChannel.configureBlocking(false);
       socketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-      log.info("bound to {}, entering event loop", socketAddress);
+      LOG.info("bound to {}, entering event loop", socketAddress);
       looping.set(true);
       starting.set(false);
       while (looping.get() && serverSocketChannel.isOpen()) {
@@ -136,14 +138,8 @@ public class SynchronousEventStreamLooper implements EventLooper {
           if (selectedKey.isValid()
               && selectedKey.isReadable()
               && maskOpSet(selectedKey, SelectionKey.OP_READ)) {
-            handleReadableKey(
-                selectedKey,
-                peerRegistry,
-                peer -> {
-                  if (!readHandler.handleReadablePeer(selectedKey, peer)) {
-                    log.trace("no message read from peer: {}", peer);
-                  }
-                });
+            handleReadableKey(selectedKey,
+                peerRegistry, peer -> readHandler.handleReadablePeer(selectedKey, peer));
 
             readEventsMeter.mark();
           }
@@ -154,11 +150,8 @@ public class SynchronousEventStreamLooper implements EventLooper {
             handleWritableKey(
                 selectedKey,
                 peerRegistry,
-                (selectionKey, peer) -> {
-                  if (!writeHandler.handleWritablePeer(selectedKey, peer)) {
-                    log.trace("no message written to peer: {}", peer);
-                  }
-                }
+                (selectionKey, peer) ->
+                    writeHandler.handleWritablePeer(selectedKey, peer)
             );
 
             writeEventsMeter.mark();
@@ -169,22 +162,22 @@ public class SynchronousEventStreamLooper implements EventLooper {
       } // while
     } finally {
       looping.set(false);
-      log.info("looper exiting");
+      LOG.info("looper exiting");
     }
   }
 
   @Override
   public boolean halt() {
     if (starting.get()) {
-      log.trace("looper is still starting");
+      LOG.trace("looper is still starting");
       return false;
     }
 
     if (looping.get()) {
-      log.trace("disabling looping flag");
+      LOG.trace("disabling looping flag");
       looping.set(false);
     } else {
-      log.info("looper is already done looping");
+      LOG.info("looper is already done looping");
       return true;
     }
 
@@ -193,11 +186,11 @@ public class SynchronousEventStreamLooper implements EventLooper {
         .filter(AbstractInterruptibleChannel::isOpen)
         .map(ss -> {
           try {
-            log.trace("closing server socket channel during halt...");
+            LOG.trace("closing server socket channel during halt...");
             ss.close();
             return true;
           } catch (final IOException ioe) {
-            log.trace("warn failed to close server socket channel during halt...", ioe);
+            LOG.trace("warn failed to close server socket channel during halt...", ioe);
             return false;
           }
         })
@@ -209,7 +202,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
 
     Optional
         .ofNullable(selectorRef.get())
-        .ifPresentOrElse(Selector::wakeup, () -> log.warn("select ref was absent during halt..."));
+        .ifPresentOrElse(Selector::wakeup, () -> LOG.warn("select ref was absent during halt..."));
 
     return true;
   }

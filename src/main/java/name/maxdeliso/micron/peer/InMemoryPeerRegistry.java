@@ -7,16 +7,16 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.slots.SlotManager;
-import net.jcip.annotations.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Slf4j
-@RequiredArgsConstructor
-@ThreadSafe
+
 public final class InMemoryPeerRegistry implements PeerRegistry<InMemoryPeer> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(InMemoryPeerRegistry.class);
 
   private final AtomicInteger peerCounter;
 
@@ -60,10 +60,10 @@ public final class InMemoryPeerRegistry implements PeerRegistry<InMemoryPeer> {
     try {
       peer.getSocketChannel().close();
     } catch (final IOException ioe) {
-      log.warn("failed to close channel during peer eviction of {}", peer, ioe);
+      LOG.warn("failed to close channel during peer eviction of {}", peer, ioe);
     } finally {
       peerMap.remove(peer.getIndex());
-      slotManager.decrementOccupants(peer.getPosition().get());
+      slotManager.decrementOccupants(peer.position());
     }
   }
 
@@ -78,7 +78,7 @@ public final class InMemoryPeerRegistry implements PeerRegistry<InMemoryPeer> {
         .values()
         .stream()
         .sorted(Comparator.comparingLong(InMemoryPeer::getNetBytesRX))
-        .collect(Collectors.toList())
+        .toList()
         .indexOf(peer);
   }
 }

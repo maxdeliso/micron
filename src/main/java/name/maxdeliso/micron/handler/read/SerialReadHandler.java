@@ -4,40 +4,39 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.peer.InMemoryPeer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Slf4j
-@RequiredArgsConstructor
-public class SerialReadHandler implements ReadHandler {
+public record SerialReadHandler(ByteBuffer incomingBuffer,
+                                PeerRegistry<InMemoryPeer> peerRegistry,
+                                RingBufferMessageStore messageStore,
+                                SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder) implements ReadHandler {
 
-  private final ByteBuffer incomingBuffer;
-  private final PeerRegistry<InMemoryPeer> peerRegistry;
-  private final RingBufferMessageStore messageStore;
-  private final SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder;
+  private static final Logger LOG = LoggerFactory.getLogger(SerialReadHandler.class);
 
   @Override
-  public boolean handleReadablePeer(final SelectionKey key, final InMemoryPeer peer) {
+  public void handleReadablePeer(final SelectionKey key, final InMemoryPeer peer) {
     final int readOrder = peerRegistry.getReadOrder(peer);
 
     selectionKeyToggleQueueAdder
         .disableAndEnqueueEnableInterest(key, SelectionKey.OP_READ, 1 + readOrder);
 
-    log.trace("handling read for peer {} with order {}", peer, readOrder);
+    LOG.trace("handling read for peer {} with order {}", peer, readOrder);
 
     final int bytesRead = performRead(peer);
     final byte[] incomingBytes;
 
     if (bytesRead == 0) {
-      log.trace("read no bytes from peer {}", peer);
+      LOG.trace("read no bytes from peer {}", peer);
 
       incomingBytes = null;
     } else {
-      log.trace("read {} bytes from peer {}", bytesRead, peer);
+      LOG.trace("read {} bytes from peer {}", bytesRead, peer);
 
       incomingBytes = new byte[bytesRead];
       incomingBuffer.flip();
@@ -46,7 +45,7 @@ public class SerialReadHandler implements ReadHandler {
       peer.countBytesRx(incomingBytes.length);
     }
 
-    return Optional.ofNullable(incomingBytes).map(messageStore::add).orElse(false);
+    Optional.ofNullable(incomingBytes).map(messageStore::add);
   }
 
   private int performRead(final InMemoryPeer peer) {
@@ -65,7 +64,7 @@ public class SerialReadHandler implements ReadHandler {
         finalBytesRead = bytesRead;
       }
     } catch (final IOException ioe) {
-      log.warn("io error while reading from peer, so marking for eviction", ioe);
+      LOG.warn("io error while reading from peer, so marking for eviction", ioe);
       evictPeer = true;
       return 0;
     } finally {

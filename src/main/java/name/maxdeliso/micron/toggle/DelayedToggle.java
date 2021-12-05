@@ -7,10 +7,12 @@ import java.time.Duration;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Slf4j
 public class DelayedToggle implements Delayed {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DelayedToggle.class);
 
   private final AtomicReference<Selector> selectorAtomicReference;
 
@@ -58,7 +60,7 @@ public class DelayedToggle implements Delayed {
       selectionKey.interestOpsOr(mask);
       selectorAtomicReference.get().wakeup();
     } catch (final CancelledKeyException cke) {
-      log.trace("detected cancelled key while toggling async interest ops", cke);
+      LOG.trace("detected cancelled key while toggling async interest ops", cke);
     }
   }
 }
