@@ -1,12 +1,12 @@
 package name.maxdeliso.micron.message;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import name.maxdeliso.micron.slots.SlotManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class InMemoryMessageStore implements RingBufferMessageStore {
 

@@ -1,16 +1,15 @@
 package name.maxdeliso.micron.handler.write;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-
 import name.maxdeliso.micron.message.RingBufferMessageStore;
-import name.maxdeliso.micron.peer.InMemoryPeer;
 import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 
 public record SerialWriteHandler(RingBufferMessageStore messageStore,
                                  SelectionKeyToggleQueueAdder selectionKeyToggleQueueAdder,

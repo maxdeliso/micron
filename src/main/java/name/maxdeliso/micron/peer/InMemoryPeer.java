@@ -1,11 +1,11 @@
 package name.maxdeliso.micron.peer;
 
 import com.google.common.base.MoreObjects;
+import name.maxdeliso.micron.slots.SlotManager;
+
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
-import name.maxdeliso.micron.slots.SlotManager;
 
 public class InMemoryPeer implements Peer {
 

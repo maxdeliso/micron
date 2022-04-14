@@ -3,6 +3,18 @@ package name.maxdeliso.micron.looper;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import name.maxdeliso.micron.handler.read.ReadHandler;
+import name.maxdeliso.micron.handler.read.SerialReadHandler;
+import name.maxdeliso.micron.handler.write.SerialWriteHandler;
+import name.maxdeliso.micron.handler.write.WriteHandler;
+import name.maxdeliso.micron.message.RingBufferMessageStore;
+import name.maxdeliso.micron.peer.Peer;
+import name.maxdeliso.micron.peer.PeerRegistry;
+import name.maxdeliso.micron.toggle.DelayedToggle;
+import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -19,18 +31,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import name.maxdeliso.micron.handler.read.ReadHandler;
-import name.maxdeliso.micron.handler.read.SerialReadHandler;
-import name.maxdeliso.micron.handler.write.SerialWriteHandler;
-import name.maxdeliso.micron.handler.write.WriteHandler;
-import name.maxdeliso.micron.message.RingBufferMessageStore;
-import name.maxdeliso.micron.peer.InMemoryPeer;
-import name.maxdeliso.micron.peer.Peer;
-import name.maxdeliso.micron.peer.PeerRegistry;
-import name.maxdeliso.micron.toggle.DelayedToggle;
-import name.maxdeliso.micron.toggle.SelectionKeyToggleQueueAdder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 public class SynchronousEventStreamLooper implements EventLooper {
@@ -60,7 +60,7 @@ public class SynchronousEventStreamLooper implements EventLooper {
   private final Meter readEventsMeter;
 
   /**
-   * Build a single threaded threaded streaming event looper.
+   * Build a single threaded streaming event looper.
    *
    * @param socketAddress       address to listen on.
    * @param peerRegistry        a peer registry instance.

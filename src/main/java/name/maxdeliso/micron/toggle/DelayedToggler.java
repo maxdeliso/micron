@@ -1,9 +1,9 @@
 package name.maxdeliso.micron.toggle;
 
-import java.util.concurrent.DelayQueue;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.DelayQueue;
 
 public record DelayedToggler(
     DelayQueue<DelayedToggle> delayedToggles) implements Runnable {

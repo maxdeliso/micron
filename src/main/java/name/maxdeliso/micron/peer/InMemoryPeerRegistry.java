@@ -1,17 +1,16 @@
 package name.maxdeliso.micron.peer;
 
+import name.maxdeliso.micron.message.RingBufferMessageStore;
+import name.maxdeliso.micron.slots.SlotManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import name.maxdeliso.micron.message.RingBufferMessageStore;
-import name.maxdeliso.micron.slots.SlotManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 
 public final class InMemoryPeerRegistry implements PeerRegistry {
 

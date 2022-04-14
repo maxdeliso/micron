@@ -1,20 +1,8 @@
 package name.maxdeliso.micron.looper;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.concurrent.DelayQueue;
-
 import name.maxdeliso.micron.message.RingBufferMessageStore;
-import name.maxdeliso.micron.peer.InMemoryPeer;
-import name.maxdeliso.micron.peer.Peer;
 import name.maxdeliso.micron.peer.PeerRegistry;
 import name.maxdeliso.micron.support.TestSelectorProvider;
 import name.maxdeliso.micron.toggle.DelayedToggle;
@@ -25,6 +13,16 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.concurrent.DelayQueue;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SynchronousEventStreamLooperTest {

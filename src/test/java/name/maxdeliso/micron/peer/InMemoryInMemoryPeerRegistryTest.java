@@ -1,13 +1,5 @@
 package name.maxdeliso.micron.peer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
-
-import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.SelectorProvider;
-import java.util.Optional;
 import name.maxdeliso.micron.message.RingBufferMessageStore;
 import name.maxdeliso.micron.slots.SlotManager;
 import name.maxdeliso.micron.support.TestSelectorProvider;
@@ -17,6 +9,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.nio.channels.SocketChannel;
+import java.nio.channels.spi.SelectorProvider;
+import java.util.Optional;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class InMemoryInMemoryPeerRegistryTest {

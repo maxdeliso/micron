@@ -1,6 +1,5 @@
 package name.maxdeliso.micron.support;
 
-
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.AbstractSelectableChannel;

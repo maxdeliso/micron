@@ -4,14 +4,6 @@ import com.beust.jcommander.JCommander;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.spi.SelectorProvider;
-import java.time.Duration;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import name.maxdeliso.micron.looper.EventLooper;
 import name.maxdeliso.micron.looper.SynchronousEventStreamLooper;
 import name.maxdeliso.micron.message.InMemoryMessageStore;
@@ -26,6 +18,15 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.spi.SelectorProvider;
+import java.time.Duration;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 final class Main {
   private static final Logger log = LoggerFactory.getLogger(Main.class);
